@@ -1,0 +1,9 @@
+Django==5.1.4
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.4.0
+django-cors-headers==4.6.0
+wagtail==6.3.1
+Pillow==11.0.0
+python-decouple==3.8
+django-environ==0.12.0
+drf-spectacular==0.29.0
