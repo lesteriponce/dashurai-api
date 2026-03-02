@@ -26,7 +26,11 @@ def api_response(success=True, data=None, message=None, status_code=status.HTTP_
     if success:
         return Response({'success': True, 'data': data}, status=status_code)
     else:
-        return Response({'success': False, 'message': message}, status=status_code)
+        # Handle both string messages and dictionary errors
+        if isinstance(message, dict):
+            return Response({'success': False, 'errors': message}, status=status_code)
+        else:
+            return Response({'success': False, 'message': message}, status=status_code)
 
 # Authentication Views
 @extend_schema(
@@ -425,10 +429,14 @@ def admin_delete_position(request, pk):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_documents(request):
-    # List alll documents
-    documents = Document.objects.filter(is_published=True)
-    serializer = DocumentSerializer(documents, many=True)
-    return api_response(data=serializer.data)
+    try:
+        documents = Document.objects.filter(is_published=True)
+        serializer = DocumentSerializer(documents, many=True)
+        return api_response(data=serializer.data)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve documents', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     responses={
@@ -441,10 +449,16 @@ def cms_documents(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_document_detail(request, pk):
-    # Get document detail
-    document = get_object_or_404(Document, pk=pk, is_published=True)
-    serializer = DocumentSerializer(document)
-    return api_response(data=serializer.data)
+    try:
+        document = get_object_or_404(Document, pk=pk, is_published=True)
+        serializer = DocumentSerializer(document)
+        return api_response(data=serializer.data)
+    except Document.DoesNotExist:
+        return api_response(success=False, message='Document not found', status_code=status.HTTP_404_NOT_FOUND)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve document', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     responses={
@@ -456,19 +470,23 @@ def cms_document_detail(request, pk):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_find_document(request):
-    # Find document
-    query = request.GET.get('q', '')
-    category = request.GET.get('category', '')
-    
-    documents = Document.objects.filter(is_published=True)
-    
-    if query:
-        documents = documents.filter(title__icontains=query)
-    if category:
-        documents = documents.filter(category__icontains=category)
-    
-    serializer = DocumentSerializer(documents, many=True)
-    return api_response(data=serializer.data)
+    try:
+        query = request.GET.get('q', '')
+        category = request.GET.get('category', '')
+        
+        documents = Document.objects.filter(is_published=True)
+        
+        if query:
+            documents = documents.filter(title__icontains=query)
+        if category:
+            documents = documents.filter(category__icontains=category)
+        
+        serializer = DocumentSerializer(documents, many=True)
+        return api_response(data=serializer.data)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to search documents', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # CMS Views - Images
 @extend_schema(
@@ -481,10 +499,14 @@ def cms_find_document(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_images(request):
-    # List images
-    images = Image.objects.filter(is_published=True)
-    serializer = ImageSerializer(images, many=True)
-    return api_response(data=serializer.data)
+    try:
+        images = Image.objects.filter(is_published=True)
+        serializer = ImageSerializer(images, many=True)
+        return api_response(data=serializer.data)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve images', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     responses={
@@ -497,10 +519,16 @@ def cms_images(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_image_detail(request, pk):
-    # Get image detail 
-    image = get_object_or_404(Image, pk=pk, is_published=True)
-    serializer = ImageSerializer(image)
-    return api_response(data=serializer.data)
+    try:
+        image = get_object_or_404(Image, pk=pk, is_published=True)
+        serializer = ImageSerializer(image)
+        return api_response(data=serializer.data)
+    except Image.DoesNotExist:
+        return api_response(success=False, message='Image not found', status_code=status.HTTP_404_NOT_FOUND)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve image', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     responses={
@@ -512,18 +540,23 @@ def cms_image_detail(request, pk):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_find_image(request):
-    query = request.GET.get('q', '')
-    category = request.GET.get('category', '')
-    
-    images = Image.objects.filter(is_published=True)
-    
-    if query:
-        images = images.filter(title__icontains=query)
-    if category:
-        images = images.filter(category__icontains=category)
-    
-    serializer = ImageSerializer(images, many=True)
-    return api_response(data=serializer.data)
+    try:
+        query = request.GET.get('q', '')
+        category = request.GET.get('category', '')
+        
+        images = Image.objects.filter(is_published=True)
+        
+        if query:
+            images = images.filter(title__icontains=query)
+        if category:
+            images = images.filter(category__icontains=category)
+        
+        serializer = ImageSerializer(images, many=True)
+        return api_response(data=serializer.data)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to search images', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # CMS Views - Pages
 @extend_schema(
@@ -536,9 +569,14 @@ def cms_find_image(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_pages(request):
-    pages = Page.objects.filter(status='published')
-    serializer = PageSerializer(pages, many=True)
-    return api_response(data=serializer.data)
+    try:
+        pages = Page.objects.filter(status='published')
+        serializer = PageSerializer(pages, many=True)
+        return api_response(data=serializer.data)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve pages', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     responses={
@@ -551,9 +589,16 @@ def cms_pages(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_page_detail(request, pk):
-    page = get_object_or_404(Page, pk=pk, status='published')
-    serializer = PageSerializer(page)
-    return api_response(data=serializer.data)
+    try:
+        page = get_object_or_404(Page, pk=pk, status='published')
+        serializer = PageSerializer(page)
+        return api_response(data=serializer.data)
+    except Page.DoesNotExist:
+        return api_response(success=False, message='Page not found', status_code=status.HTTP_404_NOT_FOUND)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve page', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     responses={
@@ -566,23 +611,29 @@ def cms_page_detail(request, pk):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def cms_page_action(request, pk, action_name):
-    # Execute page action 
-    page = get_object_or_404(Page, pk=pk)
-    
-    # Define available actions
-    actions = {
-        'publish': lambda p: setattr(p, 'status', 'published'),
-        'archive': lambda p: setattr(p, 'status', 'archived'),
-        'draft': lambda p: setattr(p, 'status', 'draft'),
-    }
-    
-    if action_name not in actions:
-        return api_response(success=False, message='Invalid action', status_code=status.HTTP_400_BAD_REQUEST)
-    
-    actions[action_name](page)
-    page.save()
-    
-    return api_response(data={'message': f'Page {action_name} action completed successfully'})
+    try:
+        page = get_object_or_404(Page, pk=pk)
+        
+        # Define available actions
+        actions = {
+            'publish': lambda p: setattr(p, 'status', 'published'),
+            'archive': lambda p: setattr(p, 'status', 'archived'),
+            'draft': lambda p: setattr(p, 'status', 'draft'),
+        }
+        
+        if action_name not in actions:
+            return api_response(success=False, message='Invalid action', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        actions[action_name](page)
+        page.save()
+        
+        return api_response(data={'message': f'Page {action_name} action completed successfully'})
+    except Page.DoesNotExist:
+        return api_response(success=False, message='Page not found', status_code=status.HTTP_404_NOT_FOUND)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to execute page action', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     responses={
@@ -594,16 +645,20 @@ def cms_page_action(request, pk, action_name):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_find_page(request):
-    # find pages by search criteri
-    query = request.GET.get('q', '')
-    template = request.GET.get('template', '')
-    
-    pages = Page.objects.filter(status='published')
-    
-    if query:
-        pages = pages.filter(title__icontains=query)
-    if template:
-        pages = pages.filter(template__icontains=template)
-    
-    serializer = PageSerializer(pages, many=True)
-    return api_response(data=serializer.data)
+    try:
+        query = request.GET.get('q', '')
+        template = request.GET.get('template', '')
+        
+        pages = Page.objects.filter(status='published')
+        
+        if query:
+            pages = pages.filter(title__icontains=query)
+        if template:
+            pages = pages.filter(template__icontains=template)
+        
+        serializer = PageSerializer(pages, many=True)
+        return api_response(data=serializer.data)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to search pages', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
