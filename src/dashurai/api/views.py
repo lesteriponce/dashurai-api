@@ -38,7 +38,7 @@ def api_response(success=True, data=None, message=None, status_code=status.HTTP_
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def login(request):
-    """User login - authenticate user and return JWT tokens"""
+    # return JWT tokens
     serializer = LoginSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         user = serializer.validated_data['user']
@@ -62,7 +62,7 @@ class RegisterView(APIView):
         }
     )
     def post(self, request):
-        """User registration - register a new user account"""
+        # register a new user account
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
@@ -82,7 +82,7 @@ class RegisterView(APIView):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def refresh_token(request):
-    """Refresh JWT token - get new access token using refresh token"""
+    # Refresh JWT token 
     try:
         refresh_token = request.data.get('refresh')
         if not refresh_token:
@@ -105,7 +105,7 @@ def refresh_token(request):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def admin_login(request):
-    """Admin login - authenticate admin user and return JWT tokens"""
+    # Admin loginand return JWT tokens
     serializer = AdminLoginSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         user = serializer.validated_data['user']
@@ -128,7 +128,7 @@ def admin_login(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def positions_list(request):
-    """List active positions - get list of all active job positions"""
+    # List active positionss
     positions = Position.objects.filter(status='active')
     serializer = PositionSerializer(positions, many=True)
     return api_response(data=serializer.data)
@@ -144,7 +144,7 @@ def positions_list(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def position_detail(request, pk):
-    """Get position details - get detailed information about a specific position"""
+    # Get position details
     position = get_object_or_404(Position, pk=pk, status='active')
     serializer = PositionSerializer(position)
     return api_response(data=serializer.data)
@@ -161,7 +161,7 @@ def position_detail(request, pk):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def apply_job(request):
-    """Apply for job - submit a job application"""
+    # Apply for job subbmitting
     serializer = JobApplicationSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
@@ -181,7 +181,7 @@ def apply_job(request):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def contact_submit(request):
-    """Submit contact form - submit a contact inquiry"""
+    # Submit contact form
     serializer = ContactSubmissionSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
@@ -199,7 +199,6 @@ def contact_submit(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_applications(request):
-    """List all applications - get list of all job applications (admin only)"""
     applications = JobApplication.objects.all()
     serializer = JobApplicationSerializer(applications, many=True)
     return api_response(data=serializer.data)
@@ -217,7 +216,7 @@ def admin_applications(request):
 @api_view(['PUT'])
 @permission_classes([IsAdminUser])
 def admin_update_application(request, pk):
-    """Update application - update job application status or details (admin only)"""
+    # Update application
     application = get_object_or_404(JobApplication, pk=pk)
     serializer = JobApplicationSerializer(application, data=request.data, partial=True)
     if serializer.is_valid():
@@ -236,7 +235,7 @@ def admin_update_application(request, pk):
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def admin_delete_application(request, pk):
-    """Delete application - delete a job application (admin only)"""
+    # Delete applicationn
     application = get_object_or_404(JobApplication, pk=pk)
     application.delete()
     return api_response(data={'message': 'Application deleted successfully'})
@@ -252,7 +251,6 @@ def admin_delete_application(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_contacts(request):
-    """List all contacts - get list of all contact submissions (admin only)"""
     contacts = ContactSubmission.objects.all()
     serializer = ContactSubmissionSerializer(contacts, many=True)
     return api_response(data=serializer.data)
@@ -270,7 +268,7 @@ def admin_contacts(request):
 @api_view(['PUT'])
 @permission_classes([IsAdminUser])
 def admin_update_contact(request, pk):
-    """Update contact - update contact submission details (admin only)"""
+    # Update contact
     contact = get_object_or_404(ContactSubmission, pk=pk)
     serializer = ContactSubmissionSerializer(contact, data=request.data, partial=True)
     if serializer.is_valid():
@@ -289,7 +287,7 @@ def admin_update_contact(request, pk):
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def admin_delete_contact(request, pk):
-    """Delete contact - delete a contact submission (admin only)"""
+    # Delete contact
     contact = get_object_or_404(ContactSubmission, pk=pk)
     contact.delete()
     return api_response(data={'message': 'Contact deleted successfully'})
@@ -305,7 +303,6 @@ def admin_delete_contact(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_positions(request):
-    """List all positions - get list of all positions including inactive ones (admin only)"""
     positions = Position.objects.all()
     serializer = PositionSerializer(positions, many=True)
     return api_response(data=serializer.data)
@@ -322,7 +319,6 @@ def admin_positions(request):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def admin_create_position(request):
-    """Create position - create a new job position (admin only)"""
     serializer = PositionSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
@@ -342,7 +338,7 @@ def admin_create_position(request):
 @api_view(['PUT'])
 @permission_classes([IsAdminUser])
 def admin_update_position(request, pk):
-    """Update position - update job position details (admin only)"""
+    # update job position details (admin only)
     position = get_object_or_404(Position, pk=pk)
     serializer = PositionSerializer(position, data=request.data, partial=True)
     if serializer.is_valid():
@@ -361,7 +357,7 @@ def admin_update_position(request, pk):
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def admin_delete_position(request, pk):
-    """Delete position - delete a job position (admin only)"""
+    # delete admin only
     position = get_object_or_404(Position, pk=pk)
     position.delete()
     return api_response(data={'message': 'Position deleted successfully'})
@@ -377,7 +373,7 @@ def admin_delete_position(request, pk):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_documents(request):
-    """List documents - get list of all documents"""
+    # List alll documents
     documents = Document.objects.filter(is_published=True)
     serializer = DocumentSerializer(documents, many=True)
     return api_response(data=serializer.data)
@@ -393,7 +389,7 @@ def cms_documents(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_document_detail(request, pk):
-    """Get document detail - get detailed information about a specific document"""
+    # Get document detail
     document = get_object_or_404(Document, pk=pk, is_published=True)
     serializer = DocumentSerializer(document)
     return api_response(data=serializer.data)
@@ -408,7 +404,7 @@ def cms_document_detail(request, pk):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_find_document(request):
-    """Find document - find documents by search criteria"""
+    # Find document
     query = request.GET.get('q', '')
     category = request.GET.get('category', '')
     
@@ -433,7 +429,7 @@ def cms_find_document(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_images(request):
-    """List images - get list of all images"""
+    # List images
     images = Image.objects.filter(is_published=True)
     serializer = ImageSerializer(images, many=True)
     return api_response(data=serializer.data)
@@ -449,7 +445,7 @@ def cms_images(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_image_detail(request, pk):
-    """Get image detail - get detailed information about a specific image"""
+    # Get image detail 
     image = get_object_or_404(Image, pk=pk, is_published=True)
     serializer = ImageSerializer(image)
     return api_response(data=serializer.data)
@@ -464,7 +460,6 @@ def cms_image_detail(request, pk):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_find_image(request):
-    """Find image - find images by search criteria"""
     query = request.GET.get('q', '')
     category = request.GET.get('category', '')
     
@@ -489,7 +484,6 @@ def cms_find_image(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_pages(request):
-    """List pages - get list of all published pages"""
     pages = Page.objects.filter(status='published')
     serializer = PageSerializer(pages, many=True)
     return api_response(data=serializer.data)
@@ -505,7 +499,6 @@ def cms_pages(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_page_detail(request, pk):
-    """Get page detail - get detailed information about a specific page"""
     page = get_object_or_404(Page, pk=pk, status='published')
     serializer = PageSerializer(page)
     return api_response(data=serializer.data)
@@ -521,7 +514,7 @@ def cms_page_detail(request, pk):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def cms_page_action(request, pk, action_name):
-    """Execute page action - execute a specific action on a page"""
+    # Execute page action 
     page = get_object_or_404(Page, pk=pk)
     
     # Define available actions
@@ -549,7 +542,7 @@ def cms_page_action(request, pk, action_name):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def cms_find_page(request):
-    """Find page - find pages by search criteria"""
+    # find pages by search criteri
     query = request.GET.get('q', '')
     template = request.GET.get('template', '')
     
