@@ -1,9 +1,12 @@
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.openapi import OpenApiRequest, OpenApiResponse
 from .serializers import (
     LoginSerializer, RegisterSerializer, UserSerializer,
     PositionSerializer, JobApplicationSerializer, ContactSubmissionSerializer,
@@ -36,15 +39,24 @@ def login(request):
         })
     return api_response(success=False, message='Invalid credentials', status_code=status.HTTP_401_UNAUTHORIZED)
 
-@api_view(['POST'])
-@permission_classes([permissions.AllowAny])
-def register(request):
-    """User registration - register a new user account"""
-    serializer = RegisterSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.save()
-        return api_response(data={'message': 'Registration successful'}, status_code=status.HTTP_201_CREATED)
-    return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+class RegisterView(APIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = RegisterSerializer
+    
+    @extend_schema(
+        request=RegisterSerializer,
+        responses={
+            201: OpenApiResponse(description='Registration successful'),
+            400: OpenApiResponse(description='Bad request - validation errors')
+        }
+    )
+    def post(self, request):
+        """User registration - register a new user account"""
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return api_response(data={'message': 'Registration successful'}, status_code=status.HTTP_201_CREATED)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])

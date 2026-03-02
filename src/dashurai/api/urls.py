@@ -6,7 +6,7 @@ app_name = 'api'
 urlpatterns = [
     # Authentication URLs
     path('auth/login/', views.login, name='login'),
-    path('auth/register/', views.register, name='register'),
+    path('auth/register/', views.RegisterView.as_view(), name='register'),
     path('auth/refresh/', views.refresh_token, name='refresh_token'),
     
     # Admin Authentication
