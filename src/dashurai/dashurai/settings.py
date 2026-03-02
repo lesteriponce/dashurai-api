@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'drf_spectacular',
+    'django_ratelimit',
     'wagtail',
     'wagtail.admin',
     'wagtail.documents',
@@ -164,3 +165,48 @@ WAGTAILADMIN_BASE_URL = 'http://localhost:8000'
 
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
+
+# Rate Limiting Settings
+RATELIMIT_ENABLE = True
+RATELIMIT_USE_CACHE = 'default'
+
+# Cache Configuration - Required for rate limiting
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+# Fallback to file cache if Redis is not available
+try:
+    import redis
+except ImportError:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+            'LOCATION': '/tmp/django_cache',
+        }
+    }
+
+# Rate limiting configurations (requests per time period)
+RATELIMIT_VIEW_CONFIG = {
+    'auth': {
+        'login': '5/m',  # 5 login attempts per minute
+        'register': '3/m',  # 3 registration attempts per minute
+        'refresh': '10/m',  # 10 token refresh attempts per minute
+    },
+    'public': {
+        'contact': '2/m',  # 2 contact submissions per minute
+        'job_application': '3/h',  # 3 job applications per hour
+        'careers_list': '30/m',  # 30 career list requests per minute
+    },
+    'cms': {
+        'public_pages': '60/m',  # 60 public page requests per minute
+        'documents': '30/m',  # 30 document requests per minute
+        'images': '60/m',  # 60 image requests per minute
+    }
+}
