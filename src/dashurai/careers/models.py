@@ -1,4 +1,6 @@
 from django.db import models
+from django.core.validators import FileExtensionValidator
+from django.core.exceptions import ValidationError
 from django.conf import settings
 
 class Position(models.Model):
@@ -42,7 +44,12 @@ class JobApplication(models.Model):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     email = models.EmailField()
-    resume = models.FileField(upload_to='resumes/')
+    resume = models.FileField(
+        upload_to='resumes/',
+        validators=[
+            FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx'])
+        ]
+    )
     status = models.CharField(max_length=20, choices=APPLICATION_STATUS, default='pending')
     applied_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -52,3 +59,10 @@ class JobApplication(models.Model):
     
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.position.title}"
+    
+    def clean(self):
+        super().clean()
+        if self.resume:
+            max_size = 5 * 1024 * 1024  # 5MB
+            if self.resume.size > max_size:
+                raise ValidationError({'resume': 'Resume file must be smaller than 5MB'})

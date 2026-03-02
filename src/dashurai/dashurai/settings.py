@@ -9,7 +9,6 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
 
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -182,7 +181,7 @@ CACHES = {
     }
 }
 
-# Fallback to file cache if Redis is not available
+# Fallback to file cache
 try:
     import redis
 except ImportError:
@@ -193,22 +192,22 @@ except ImportError:
         }
     }
 
-# Rate limiting configurations (requests per time period)
+# requests per time period
 RATELIMIT_VIEW_CONFIG = {
     'auth': {
-        'login': '5/m',  # 5 login attempts per minute
-        'register': '3/m',  # 3 registration attempts per minute
-        'refresh': '10/m',  # 10 token refresh attempts per minute
+        'login': '5/m',  
+        'register': '3/m', 
+        'refresh': '10/m',  
     },
     'public': {
-        'contact': '2/m',  # 2 contact submissions per minute
-        'job_application': '3/h',  # 3 job applications per hour
-        'careers_list': '30/m',  # 30 career list requests per minute
+        'contact': '2/m',  
+        'job_application': '3/h', 
+        'careers_list': '30/m',  
     },
     'cms': {
-        'public_pages': '60/m',  # 60 public page requests per minute
-        'documents': '30/m',  # 30 document requests per minute
-        'images': '60/m',  # 60 image requests per minute
+        'public_pages': '60/m',  
+        'documents': '30/m',  
+        'images': '60/m',  
     }
 }
 

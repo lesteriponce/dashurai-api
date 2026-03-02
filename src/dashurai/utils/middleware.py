@@ -1,32 +1,20 @@
-"""
-Custom middleware for DashurAI application.
-Includes request logging and security monitoring.
-"""
-
 import time
 import logging
 from django.utils.deprecation import MiddlewareMixin
 from django.conf import settings
 from .logging import log_api_request, log_security_event
 
-
 class RequestLoggingMiddleware(MiddlewareMixin):
-    """
-    Middleware to log all API requests and responses.
-    """
-    
     def __init__(self, get_response):
         self.get_response = get_response
         self.logger = logging.getLogger('api.requests')
         super().__init__(get_response)
     
     def process_request(self, request):
-        """Store request start time."""
         request.start_time = time.time()
         return None
     
     def process_response(self, request, response):
-        """Log request completion."""
         if hasattr(request, 'start_time'):
             duration = time.time() - request.start_time
             
@@ -41,7 +29,7 @@ class RequestLoggingMiddleware(MiddlewareMixin):
                 log_api_request(request, response)
                 
                 # Log slow requests
-                if duration > 2.0:  # Log requests taking more than 2 seconds
+                if duration > 2.0:  
                     self.logger.warning(
                         f"Slow API request: {request.method} {request.path} - "
                         f"Duration: {duration:.2f}s - Status: {response.status_code}"
@@ -50,23 +38,17 @@ class RequestLoggingMiddleware(MiddlewareMixin):
         return response
     
     def process_exception(self, request, exception):
-        """Log request exceptions."""
         log_api_request(request, exception=exception)
         return None
 
 
 class SecurityLoggingMiddleware(MiddlewareMixin):
-    """
-    Middleware to log security-related events.
-    """
-    
     def __init__(self, get_response):
         self.get_response = get_response
         self.logger = logging.getLogger('django.security')
         super().__init__(get_response)
     
     def process_request(self, request):
-        """Log suspicious request patterns."""
         # Log requests with suspicious headers
         suspicious_headers = []
         for header, value in request.META.items():
