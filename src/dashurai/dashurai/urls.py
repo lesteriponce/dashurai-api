@@ -24,9 +24,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     # Wagtail CMS
-    path('cms/', include(wagtailadmin_urls)),
     path('documents/', include(wagtail_docs_urls)),
     path('', include(wagtail_urls)),
+    path('cms/', include(wagtailadmin_urls)),
 ]
 
 # media and static files 

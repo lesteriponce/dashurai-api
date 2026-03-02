@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'users',
     'careers',
     'contact',
+    'cms',
     'api',
 ]
 
@@ -130,8 +131,8 @@ REST_FRAMEWORK = {
 
 # drf-spectacular settings
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Dashur API',
-    'DESCRIPTION': 'Django REST API with Wagtail CMS integration for Dashur AI frontend',
+    'TITLE': 'DashurAI API',
+    'DESCRIPTION': 'Django REST API with Wagtail CMS integration',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }

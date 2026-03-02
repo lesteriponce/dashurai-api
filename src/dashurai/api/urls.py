@@ -35,4 +35,20 @@ urlpatterns = [
     path('admin/positions/create/', views.admin_create_position, name='admin_create_position'),
     path('admin/positions/<str:pk>/', views.admin_update_position, name='admin_update_position'),
     path('admin/positions/<str:pk>/delete/', views.admin_delete_position, name='admin_delete_position'),
+    
+    # CMS URLs - Documents
+    path('content/documents/', views.cms_documents, name='cms_documents'),
+    path('content/documents/<str:pk>/', views.cms_document_detail, name='cms_document_detail'),
+    path('content/documents/find/', views.cms_find_document, name='cms_find_document'),
+    
+    # CMS URLs - Images
+    path('content/images/', views.cms_images, name='cms_images'),
+    path('content/images/<str:pk>/', views.cms_image_detail, name='cms_image_detail'),
+    path('content/images/find/', views.cms_find_image, name='cms_find_image'),
+    
+    # CMS URLs - Pages
+    path('content/pages/', views.cms_pages, name='cms_pages'),
+    path('content/pages/<str:pk>/', views.cms_page_detail, name='cms_page_detail'),
+    path('content/pages/<str:pk>/action/<str:action_name>/', views.cms_page_action, name='cms_page_action'),
+    path('content/pages/find/', views.cms_find_page, name='cms_find_page'),
 ]
