@@ -3,8 +3,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError, PermissionDenied
+from django.db import DatabaseError
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.openapi import OpenApiRequest, OpenApiResponse
 from .serializers import (
@@ -90,8 +93,10 @@ def refresh_token(request):
         
         refresh = RefreshToken(refresh_token)
         return api_response(data={'access': str(refresh.access_token)})
+    except (TokenError, InvalidToken) as e:
+        return api_response(success=False, message='Invalid or expired refresh token', status_code=status.HTTP_401_UNAUTHORIZED)
     except Exception as e:
-        return api_response(success=False, message='Invalid refresh token', status_code=status.HTTP_401_UNAUTHORIZED)
+        return api_response(success=False, message='Token refresh failed', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     request=AdminLoginSerializer,
@@ -128,10 +133,14 @@ def admin_login(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def positions_list(request):
-    # List active positionss
-    positions = Position.objects.filter(status='active')
-    serializer = PositionSerializer(positions, many=True)
-    return api_response(data=serializer.data)
+    try:
+        positions = Position.objects.filter(status='active')
+        serializer = PositionSerializer(positions, many=True)
+        return api_response(data=serializer.data)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve positions', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     responses={
@@ -144,10 +153,16 @@ def positions_list(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def position_detail(request, pk):
-    # Get position details
-    position = get_object_or_404(Position, pk=pk, status='active')
-    serializer = PositionSerializer(position)
-    return api_response(data=serializer.data)
+    try:
+        position = get_object_or_404(Position, pk=pk, status='active')
+        serializer = PositionSerializer(position)
+        return api_response(data=serializer.data)
+    except Position.DoesNotExist:
+        return api_response(success=False, message='Position not found', status_code=status.HTTP_404_NOT_FOUND)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve position', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     request=JobApplicationSerializer,
@@ -161,12 +176,18 @@ def position_detail(request, pk):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def apply_job(request):
-    # Apply for job subbmitting
-    serializer = JobApplicationSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return api_response(data={'message': 'Application submitted successfully'}, status_code=status.HTTP_201_CREATED)
-    return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    try:
+        serializer = JobApplicationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data={'message': 'Application submitted successfully'}, status_code=status.HTTP_201_CREATED)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to submit application', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Application submission failed', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Contact Views
 @extend_schema(
@@ -181,12 +202,18 @@ def apply_job(request):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def contact_submit(request):
-    # Submit contact form
-    serializer = ContactSubmissionSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return api_response(data={'message': 'Contact form submitted successfully'}, status_code=status.HTTP_201_CREATED)
-    return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    try:
+        serializer = ContactSubmissionSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data={'message': 'Contact form submitted successfully'}, status_code=status.HTTP_201_CREATED)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to submit contact form', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Contact submission failed', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Admin Views - Applications
 @extend_schema(
@@ -199,9 +226,16 @@ def contact_submit(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_applications(request):
-    applications = JobApplication.objects.all()
-    serializer = JobApplicationSerializer(applications, many=True)
-    return api_response(data=serializer.data)
+    try:
+        applications = JobApplication.objects.all()
+        serializer = JobApplicationSerializer(applications, many=True)
+        return api_response(data=serializer.data)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve applications', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     request=JobApplicationSerializer,
@@ -216,13 +250,23 @@ def admin_applications(request):
 @api_view(['PUT'])
 @permission_classes([IsAdminUser])
 def admin_update_application(request, pk):
-    # Update application
-    application = get_object_or_404(JobApplication, pk=pk)
-    serializer = JobApplicationSerializer(application, data=request.data, partial=True)
-    if serializer.is_valid():
-        serializer.save()
-        return api_response(data=serializer.data)
-    return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    try:
+        application = get_object_or_404(JobApplication, pk=pk)
+        serializer = JobApplicationSerializer(application, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data=serializer.data)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except JobApplication.DoesNotExist:
+        return api_response(success=False, message='Application not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to update application', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     responses={
@@ -235,10 +279,18 @@ def admin_update_application(request, pk):
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def admin_delete_application(request, pk):
-    # Delete applicationn
-    application = get_object_or_404(JobApplication, pk=pk)
-    application.delete()
-    return api_response(data={'message': 'Application deleted successfully'})
+    try:
+        application = get_object_or_404(JobApplication, pk=pk)
+        application.delete()
+        return api_response(data={'message': 'Application deleted successfully'})
+    except JobApplication.DoesNotExist:
+        return api_response(success=False, message='Application not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to delete application', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Admin Views - Contacts
 @extend_schema(
