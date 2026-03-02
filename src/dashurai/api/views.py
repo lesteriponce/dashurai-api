@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import DatabaseError
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.openapi import OpenApiRequest, OpenApiResponse
+from django_ratelimit.decorators import ratelimit
 from .serializers import (
     LoginSerializer, RegisterSerializer, UserSerializer,
     PositionSerializer, JobApplicationSerializer, ContactSubmissionSerializer,
@@ -44,6 +45,7 @@ def api_response(success=True, data=None, message=None, status_code=status.HTTP_
 )
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def login(request):
     # return JWT tokens
     serializer = LoginSerializer(data=request.data, context={'request': request})
@@ -68,6 +70,7 @@ class RegisterView(APIView):
             400: OpenApiResponse(description='Bad request - validation errors')
         }
     )
+    @ratelimit(key='ip', rate='3/m', method='POST', block=True)
     def post(self, request):
         # register a new user account
         serializer = RegisterSerializer(data=request.data)
@@ -88,6 +91,7 @@ class RegisterView(APIView):
 )
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
 def refresh_token(request):
     # Refresh JWT token 
     try:
@@ -113,6 +117,7 @@ def refresh_token(request):
 )
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def admin_login(request):
     # Admin loginand return JWT tokens
     serializer = AdminLoginSerializer(data=request.data, context={'request': request})
@@ -136,6 +141,7 @@ def admin_login(request):
 )
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='30/m', method='GET', block=True)
 def positions_list(request):
     try:
         positions = Position.objects.filter(status='active')
@@ -179,6 +185,7 @@ def position_detail(request, pk):
 )
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='3/h', method='POST', block=True)
 def apply_job(request):
     try:
         serializer = JobApplicationSerializer(data=request.data)
@@ -205,6 +212,7 @@ def apply_job(request):
 )
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='2/m', method='POST', block=True)
 def contact_submit(request):
     try:
         serializer = ContactSubmissionSerializer(data=request.data)
@@ -428,6 +436,7 @@ def admin_delete_position(request, pk):
 )
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='30/m', method='GET', block=True)
 def cms_documents(request):
     try:
         documents = Document.objects.filter(is_published=True)
@@ -469,6 +478,7 @@ def cms_document_detail(request, pk):
 )
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='30/m', method='GET', block=True)
 def cms_find_document(request):
     try:
         query = request.GET.get('q', '')
@@ -498,6 +508,7 @@ def cms_find_document(request):
 )
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='60/m', method='GET', block=True)
 def cms_images(request):
     try:
         images = Image.objects.filter(is_published=True)
@@ -539,6 +550,7 @@ def cms_image_detail(request, pk):
 )
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='60/m', method='GET', block=True)
 def cms_find_image(request):
     try:
         query = request.GET.get('q', '')
@@ -568,6 +580,7 @@ def cms_find_image(request):
 )
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='60/m', method='GET', block=True)
 def cms_pages(request):
     try:
         pages = Page.objects.filter(status='published')
@@ -644,6 +657,7 @@ def cms_page_action(request, pk, action_name):
 )
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='60/m', method='GET', block=True)
 def cms_find_page(request):
     try:
         query = request.GET.get('q', '')
