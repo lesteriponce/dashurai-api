@@ -135,9 +135,89 @@ REST_FRAMEWORK = {
 # drf-spectacular settings
 SPECTACULAR_SETTINGS = {
     'TITLE': 'DashurAI API',
-    'DESCRIPTION': 'Django REST API with Wagtail CMS integration',
+    'DESCRIPTION': 'Django REST API with Wagtail CMS integration for managing careers, contact forms, and content management.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': False,
+        'filter': True,
+        'tryItOutEnabled': True,
+    },
+    'REDOC_UI_SETTINGS': {
+        'hideDownloadButton': False,
+        'hideHostname': True,
+        'noAutoAuth': False,
+    },
+    'SWAGGER_UI_FAVICON_HREF': 'https://fastapi.tiangolo.com/img/favicon.png',
+    'CONTACT': {
+        'name': 'DashurAI Support',
+        'email': 'support@dashurai.com',
+    },
+    'LICENSE': {
+        'name': 'MIT License',
+        'url': 'https://opensource.org/licenses/MIT',
+    },
+    'SERVERS': [
+        {'url': 'http://localhost:8000', 'description': 'Development server'},
+        {'url': 'https://api.dashurai.com', 'description': 'Production server'},
+    ],
+    'TAGS': [
+        {
+            'name': 'API',
+            'description': 'API version and metadata information'
+        },
+        {
+            'name': 'Authentication',
+            'description': 'User and admin authentication endpoints'
+        },
+        {
+            'name': 'Careers',
+            'description': 'Job positions and application management'
+        },
+        {
+            'name': 'Contact',
+            'description': 'Contact form submissions'
+        },
+        {
+            'name': 'Admin',
+            'description': 'Administrative operations (requires admin access)'
+        },
+        {
+            'name': 'CMS - Documents',
+            'description': 'Document management and retrieval'
+        },
+        {
+            'name': 'CMS - Images',
+            'description': 'Image management and retrieval'
+        },
+        {
+            'name': 'CMS - Pages',
+            'description': 'Page management and actions'
+        },
+    ],
+    'COMPONENT_SPLIT_REQUEST': True,
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
+    'SCHEMA_PATH_PREFIX': '/api/',
+    'OPERATION_ID_PREFIX': 'dashurai',
+    'PREPROCESSING_HOOKS': [],
+    'POSTPROCESSING_HOOKS': [],
+    'GENERIC_ADDITIONAL_PROPERTIES': None,
+    'CAMEL_CASE_NAMES': False,
+    'SWAGGER_UI_OAUTH2_REDIRECT_URL': None,
+    'SWAGGER_UI_OAUTH2_CONFIG': None,
+    'DEFAULT_GENERATOR_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'APPEND_COMPONENTS': {},
+    'EXTERNAL_DOCS': {
+        'description': 'Find more info here',
+        'url': 'https://docs.dashurai.com'
+    },
+    'SECURITY': [
+        {
+            'bearerAuth': []
+        }
+    ],
 }
 
 # JWT Settings
