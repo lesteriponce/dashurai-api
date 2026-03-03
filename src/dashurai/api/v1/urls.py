@@ -1,6 +1,6 @@
 from django.urls import path
 from api import views
-from api.versioning import APIVersionView
+from api.views import APIVersionView
 
 app_name = 'api_v1'
 
