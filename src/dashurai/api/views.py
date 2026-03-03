@@ -10,7 +10,6 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import DatabaseError
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.openapi import OpenApiRequest, OpenApiResponse, OpenApiTypes
-from drf_spectacular.types import OpenApiObject
 from django_ratelimit.decorators import ratelimit
 from .versioning import get_api_version_info
 from .serializers import (
