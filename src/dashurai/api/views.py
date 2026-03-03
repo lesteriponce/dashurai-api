@@ -11,6 +11,7 @@ from django.db import DatabaseError
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.openapi import OpenApiRequest, OpenApiResponse
 from django_ratelimit.decorators import ratelimit
+from .versioning import get_api_version_info
 from .serializers import (
     LoginSerializer, RegisterSerializer, UserSerializer,
     PositionSerializer, JobApplicationSerializer, ContactSubmissionSerializer,
@@ -21,6 +22,27 @@ from users.models import User
 from careers.models import Position, JobApplication
 from contact.models import ContactSubmission
 from cms.models import Document, Image, Page
+
+# API Version View
+class APIVersionView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        version_info = get_api_version_info()
+        version = version_info['current_version']
+        return Response({
+            'current_version': version,
+            'supported_versions': version_info['supported_versions'],
+            'default_version': version_info['default_version'],
+            'deprecated_versions': version_info['deprecated_versions'],
+            'endpoints': {
+                'auth': f'/api/{version}/auth/',
+                'careers': f'/api/{version}/careers/',
+                'contact': f'/api/{version}/contact/',
+                'admin': f'/api/{version}/admin/',
+                'content': f'/api/{version}/content/'
+            }
+        })
 
 # Helper function for consistent response format
 def api_response(success=True, data=None, message=None, status_code=status.HTTP_200_OK):
