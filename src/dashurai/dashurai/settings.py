@@ -20,7 +20,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'drf_spectacular',
-    'django_ratelimit',
     'wagtail',
     'wagtail.admin',
     'wagtail.documents',
@@ -128,8 +127,6 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_VERSIONING_CLASS': 'api.versioning.APIVersioning',
 }
 
 # drf-spectacular settings
@@ -160,9 +157,13 @@ SPECTACULAR_SETTINGS = {
         'url': 'https://opensource.org/licenses/MIT',
     },
     'SERVERS': [
-        {'url': 'http://localhost:8000', 'description': 'Development server'},
+        {'url': 'http://localhost:8003', 'description': 'Development server'},
         {'url': 'https://api.dashurai.com', 'description': 'Production server'},
     ],
+    'PREPROCESSING_HOOKS': [],
+    'POSTPROCESSING_HOOKS': [],
+    'SCHEMA_PATH_PREFIX': '/api/',
+    'COMPONENT_SPLIT_REQUEST': True,
     'TAGS': [
         {
             'name': 'API',
@@ -218,6 +219,8 @@ SPECTACULAR_SETTINGS = {
             'bearerAuth': []
         }
     ],
+    'ENUM_NAME_OVERRIDES': {},
+    'GENCOVERRIDES': {},
 }
 
 # JWT Settings
@@ -264,47 +267,12 @@ WAGTAILADMIN_BASE_URL = 'http://localhost:8000'
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
 
-# Rate Limiting Settings
-RATELIMIT_ENABLE = True
-RATELIMIT_USE_CACHE = 'default'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
-    }
-}
-
-# Fallback to file cache
-try:
-    import redis
-except ImportError:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-            'LOCATION': '/tmp/django_cache',
-        }
-    }
-
-# requests per time period
-RATELIMIT_VIEW_CONFIG = {
-    'auth': {
-        'login': '5/m',  
-        'register': '3/m', 
-        'refresh': '10/m',  
-    },
-    'public': {
-        'contact': '2/m',  
-        'job_application': '3/h', 
-        'careers_list': '30/m',  
-    },
-    'cms': {
-        'public_pages': '60/m',  
-        'documents': '30/m',  
-        'images': '60/m',  
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/tmp/django_cache',
     }
 }
 
