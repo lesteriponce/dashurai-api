@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import DatabaseError
+from django.http import HttpResponse, Http404
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.openapi import OpenApiRequest, OpenApiResponse, OpenApiTypes
 from django_ratelimit.decorators import ratelimit
@@ -359,6 +360,45 @@ def admin_delete_application(request, pk):
         return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
     except DatabaseError as e:
         return api_response(success=False, message='Failed to delete application', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin'],
+    responses={
+        200: OpenApiResponse(description='Resume file downloaded successfully'),
+        404: OpenApiResponse(description='Application not found or no resume file'),
+        403: OpenApiResponse(description='Admin access required')
+    },
+    summary="Download application resume",
+    description="Download resume file for a job application (admin only)"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_download_resume(request, pk):
+    try:
+        application = get_object_or_404(JobApplication, pk=pk)
+        
+        if not application.resume:
+            return api_response(success=False, message='No resume file found for this application', status_code=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            resume_file = application.resume
+            response = HttpResponse(resume_file.read(), content_type='application/octet-stream')
+            response['Content-Disposition'] = f'attachment; filename="{resume_file.name.split("/")[-1]}"'
+            response['Content-Length'] = resume_file.size
+            return response
+        except FileNotFoundError:
+            return api_response(success=False, message='Resume file not found on server', status_code=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return api_response(success=False, message='Failed to read resume file', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    except JobApplication.DoesNotExist:
+        return api_response(success=False, message='Application not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve application', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
