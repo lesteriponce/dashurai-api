@@ -103,6 +103,12 @@ class PositionSerializer(serializers.ModelSerializer):
         model = Position
         fields = ('id', 'title', 'description', 'tags', 'image_url', 'department', 'type', 'type_display', 'status', 'status_display')
     
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if 'id' in data and data['id']:
+            data['id'] = str(data['id'])
+        return data
+    
     def validate_title(self, value):
         if not value or not value.strip():
             raise serializers.ValidationError("Title cannot be empty")
@@ -131,7 +137,13 @@ class JobApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobApplication
         fields = ('id', 'position', 'position_title', 'first_name', 'last_name', 'name', 'email', 'resume', 'status', 'status_display', 'applied_at', 'date')
-        read_only_fields = ('id', 'status', 'applied_at', 'name', 'date', 'status_display')
+        read_only_fields = ('id', 'status', 'applied_at', 'name', 'date', 'status_display', 'position_title')
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if 'position' in data and data['position']:
+            data['position'] = str(data['position'])
+        return data
     
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip()
