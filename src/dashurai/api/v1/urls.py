@@ -28,6 +28,7 @@ urlpatterns = [
     path('admin/applications/', views.admin_applications, name='admin_applications'),
     path('admin/applications/<int:pk>/', views.admin_update_application, name='admin_update_application'),
     path('admin/applications/<int:pk>/delete/', views.admin_delete_application, name='admin_delete_application'),
+    path('admin/applications/<int:pk>/resume/', views.admin_download_resume, name='admin_download_resume'),
     
     # Admin URLs - Contacts
     path('admin/contacts/', views.admin_contacts, name='admin_contacts'),
