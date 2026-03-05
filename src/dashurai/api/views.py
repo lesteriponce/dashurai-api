@@ -2,13 +2,15 @@ from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError, PermissionDenied
-from django.db import DatabaseError
+from django.db import DatabaseError, models
 from django.http import HttpResponse, Http404
+from django.utils.dateparse import parse_date
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.openapi import OpenApiRequest, OpenApiResponse, OpenApiTypes
 from django_ratelimit.decorators import ratelimit
@@ -299,8 +301,52 @@ def contact_submit(request):
 def admin_applications(request):
     try:
         applications = JobApplication.objects.all()
-        serializer = JobApplicationSerializer(applications, many=True)
-        return api_response(data=serializer.data)
+        
+        # Search by name or email
+        search = request.GET.get('search', '')
+        if search:
+            applications = applications.filter(
+                models.Q(first_name__icontains=search) |
+                models.Q(last_name__icontains=search) |
+                models.Q(email__icontains=search) |
+                models.Q(position__title__icontains=search)
+            )
+        
+        # Filter by status
+        status = request.GET.get('status', '')
+        if status:
+            applications = applications.filter(status=status)
+        
+        # Filter by date range
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        if date_from:
+            try:
+                date_from_obj = parse_date(date_from)
+                if date_from_obj:
+                    applications = applications.filter(applied_at__date__gte=date_from_obj)
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                date_to_obj = parse_date(date_to)
+                if date_to_obj:
+                    applications = applications.filter(applied_at__date__lte=date_to_obj)
+            except ValueError:
+                pass
+        
+        applications = applications.order_by('-applied_at')
+        
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 20
+        result_page = paginator.paginate_queryset(applications, request)
+        
+        serializer = JobApplicationSerializer(result_page, many=True)
+        return paginator.get_paginated_response({
+            'success': True,
+            'data': serializer.data
+        })
     except PermissionDenied:
         return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
     except DatabaseError as e:
@@ -415,9 +461,60 @@ def admin_download_resume(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_contacts(request):
-    contacts = ContactSubmission.objects.all()
-    serializer = ContactSubmissionSerializer(contacts, many=True)
-    return api_response(data=serializer.data)
+    try:
+        contacts = ContactSubmission.objects.all()
+        
+        # Search by name, email, or subject
+        search = request.GET.get('search', '')
+        if search:
+            contacts = contacts.filter(
+                models.Q(first_name__icontains=search) |
+                models.Q(last_name__icontains=search) |
+                models.Q(email__icontains=search) |
+                models.Q(subject__icontains=search)
+            )
+        
+        # Filter by status
+        status = request.GET.get('status', '')
+        if status:
+            contacts = contacts.filter(status=status)
+        
+        # Filter by date range
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        if date_from:
+            try:
+                date_from_obj = parse_date(date_from)
+                if date_from_obj:
+                    contacts = contacts.filter(submitted_at__date__gte=date_from_obj)
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                date_to_obj = parse_date(date_to)
+                if date_to_obj:
+                    contacts = contacts.filter(submitted_at__date__lte=date_to_obj)
+            except ValueError:
+                pass
+        
+        contacts = contacts.order_by('-submitted_at')
+        
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 20
+        result_page = paginator.paginate_queryset(contacts, request)
+        
+        serializer = ContactSubmissionSerializer(result_page, many=True)
+        return paginator.get_paginated_response({
+            'success': True,
+            'data': serializer.data
+        })
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve contacts', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     tags=['Admin'],
@@ -473,9 +570,63 @@ def admin_delete_contact(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def admin_positions(request):
-    positions = Position.objects.all()
-    serializer = PositionSerializer(positions, many=True)
-    return api_response(data=serializer.data)
+    try:
+        positions = Position.objects.all()
+        
+        # Search by title or department
+        search = request.GET.get('search', '')
+        if search:
+            positions = positions.filter(
+                models.Q(title__icontains=search) |
+                models.Q(department__icontains=search)
+            )
+        
+        # Filter by status
+        status = request.GET.get('status', '')
+        if status:
+            positions = positions.filter(status=status)
+        
+        # Filter by type
+        type_filter = request.GET.get('type', '')
+        if type_filter:
+            positions = positions.filter(type=type_filter)
+        
+        # Filter by date range
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        if date_from:
+            try:
+                date_from_obj = parse_date(date_from)
+                if date_from_obj:
+                    positions = positions.filter(created_at__date__gte=date_from_obj)
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                date_to_obj = parse_date(date_to)
+                if date_to_obj:
+                    positions = positions.filter(created_at__date__lte=date_to_obj)
+            except ValueError:
+                pass
+        
+        positions = positions.order_by('-created_at')
+        
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 20
+        result_page = paginator.paginate_queryset(positions, request)
+        
+        serializer = PositionSerializer(result_page, many=True)
+        return paginator.get_paginated_response({
+            'success': True,
+            'data': serializer.data
+        })
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve positions', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     tags=['Admin'],
