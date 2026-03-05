@@ -7,9 +7,14 @@ from careers.models import Position, JobApplication
 from contact.models import ContactSubmission
 
 class UserSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
-        fields = ('id', 'email', 'first_name', 'last_name')
+        fields = ('id', 'email', 'first_name', 'last_name', 'name')
+    
+    def get_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
     
     def validate_first_name(self, value):
         if not value or not value.strip():
@@ -91,9 +96,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 class PositionSerializer(serializers.ModelSerializer):
+    type_display = serializers.CharField(source='get_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
     class Meta:
         model = Position
-        fields = ('id', 'title', 'description', 'tags', 'image_url', 'department', 'type', 'status')
+        fields = ('id', 'title', 'description', 'tags', 'image_url', 'department', 'type', 'type_display', 'status', 'status_display')
     
     def validate_title(self, value):
         if not value or not value.strip():
@@ -116,11 +124,17 @@ class PositionSerializer(serializers.ModelSerializer):
 
 class JobApplicationSerializer(serializers.ModelSerializer):
     position_title = serializers.CharField(source='position.title', read_only=True)
+    name = serializers.SerializerMethodField()
+    date = serializers.DateTimeField(source='applied_at', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
     
     class Meta:
         model = JobApplication
-        fields = ('id', 'position', 'position_title', 'first_name', 'last_name', 'email', 'resume', 'status', 'applied_at')
-        read_only_fields = ('id', 'status', 'applied_at')
+        fields = ('id', 'position', 'position_title', 'first_name', 'last_name', 'name', 'email', 'resume', 'status', 'status_display', 'applied_at', 'date')
+        read_only_fields = ('id', 'status', 'applied_at', 'name', 'date', 'status_display')
+    
+    def get_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
     
     def validate_first_name(self, value):
         if not value or not value.strip():
@@ -163,10 +177,17 @@ class JobApplicationSerializer(serializers.ModelSerializer):
         return value
 
 class ContactSubmissionSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    date = serializers.DateTimeField(source='submitted_at', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
     class Meta:
         model = ContactSubmission
-        fields = ('id', 'first_name', 'last_name', 'email', 'phone', 'subject', 'message', 'status', 'submitted_at')
-        read_only_fields = ('id', 'status', 'submitted_at')
+        fields = ('id', 'first_name', 'last_name', 'name', 'email', 'phone', 'subject', 'message', 'status', 'status_display', 'submitted_at', 'date')
+        read_only_fields = ('id', 'status', 'submitted_at', 'name', 'date', 'status_display')
+    
+    def get_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
     
     def validate_first_name(self, value):
         if not value or not value.strip():
