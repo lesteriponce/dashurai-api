@@ -12,6 +12,8 @@ urlpatterns = [
     path('auth/login/', views.login, name='login'),
     path('auth/register/', views.RegisterView.as_view(), name='register'),
     path('auth/refresh/', views.refresh_token, name='refresh_token'),
+    path('auth/logout/', views.logout, name='logout'),
+    path('auth/me/', views.get_current_user, name='get_current_user'),
     
     # Admin Authentication
     path('admin/login/', views.admin_login, name='admin_login'),
@@ -23,25 +25,29 @@ urlpatterns = [
     path('careers/positions/', views.positions_list, name='positions_list'),
     path('careers/positions/<str:pk>/', views.position_detail, name='position_detail'),
     path('careers/apply/', views.apply_job, name='apply_job'),
+    path('careers/apply/<str:pk>/', views.get_application_status, name='get_application_status'),
     
     # Contact URLs
     path('contact/submit/', views.contact_submit, name='contact_submit'),
     
     # Admin URLs - Applications
     path('admin/applications/', views.admin_applications, name='admin_applications'),
-    path('admin/applications/<int:pk>/', views.admin_update_application, name='admin_update_application'),
+    path('admin/applications/<int:pk>/', views.admin_application_detail, name='admin_application_detail'),
+    path('admin/applications/<int:pk>/update/', views.admin_update_application, name='admin_update_application'),
     path('admin/applications/<int:pk>/delete/', views.admin_delete_application, name='admin_delete_application'),
     path('admin/applications/<int:pk>/resume/', views.admin_download_resume, name='admin_download_resume'),
     
     # Admin URLs - Contacts
     path('admin/contacts/', views.admin_contacts, name='admin_contacts'),
-    path('admin/contacts/<int:pk>/', views.admin_update_contact, name='admin_update_contact'),
+    path('admin/contacts/<int:pk>/', views.admin_contact_detail, name='admin_contact_detail'),
+    path('admin/contacts/<int:pk>/update/', views.admin_update_contact, name='admin_update_contact'),
     path('admin/contacts/<int:pk>/delete/', views.admin_delete_contact, name='admin_delete_contact'),
     
     # Admin URLs - Positions
     path('admin/positions/', views.admin_positions, name='admin_positions'),
     path('admin/positions/create/', views.admin_create_position, name='admin_create_position'),
-    path('admin/positions/<str:pk>/', views.admin_update_position, name='admin_update_position'),
+    path('admin/positions/<str:pk>/', views.admin_position_detail, name='admin_position_detail'),
+    path('admin/positions/<str:pk>/update/', views.admin_update_position, name='admin_update_position'),
     path('admin/positions/<str:pk>/delete/', views.admin_delete_position, name='admin_delete_position'),
     
     # CMS URLs - Documents
@@ -63,18 +69,21 @@ urlpatterns = [
     # Admin CMS URLs - Documents
     path('admin/content/documents/', views.admin_cms_documents, name='admin_cms_documents'),
     path('admin/content/documents/create/', views.admin_cms_create_document, name='admin_cms_create_document'),
-    path('admin/content/documents/<str:pk>/', views.admin_cms_update_document, name='admin_cms_update_document'),
+    path('admin/content/documents/<str:pk>/', views.admin_cms_document_detail, name='admin_cms_document_detail'),
+    path('admin/content/documents/<str:pk>/update/', views.admin_cms_update_document, name='admin_cms_update_document'),
     path('admin/content/documents/<str:pk>/delete/', views.admin_cms_delete_document, name='admin_cms_delete_document'),
     
     # Admin CMS URLs - Images
     path('admin/content/images/', views.admin_cms_images, name='admin_cms_images'),
     path('admin/content/images/create/', views.admin_cms_create_image, name='admin_cms_create_image'),
-    path('admin/content/images/<str:pk>/', views.admin_cms_update_image, name='admin_cms_update_image'),
+    path('admin/content/images/<str:pk>/', views.admin_cms_image_detail, name='admin_cms_image_detail'),
+    path('admin/content/images/<str:pk>/update/', views.admin_cms_update_image, name='admin_cms_update_image'),
     path('admin/content/images/<str:pk>/delete/', views.admin_cms_delete_image, name='admin_cms_delete_image'),
     
     # Admin CMS URLs - Pages
     path('admin/content/pages/', views.admin_cms_pages, name='admin_cms_pages'),
     path('admin/content/pages/create/', views.admin_cms_create_page, name='admin_cms_create_page'),
-    path('admin/content/pages/<str:pk>/', views.admin_cms_update_page, name='admin_cms_update_page'),
+    path('admin/content/pages/<str:pk>/', views.admin_cms_page_detail, name='admin_cms_page_detail'),
+    path('admin/content/pages/<str:pk>/update/', views.admin_cms_update_page, name='admin_cms_update_page'),
     path('admin/content/pages/<str:pk>/delete/', views.admin_cms_delete_page, name='admin_cms_delete_page'),
 ]

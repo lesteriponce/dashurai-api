@@ -162,6 +162,79 @@ def refresh_token(request):
 
 @extend_schema(
     tags=['Authentication'],
+    request={'refresh': {'type': 'string', 'example': 'refresh_token_here'}},
+    responses={
+        200: OpenApiResponse(description='Logout successful'),
+        400: OpenApiResponse(description='Refresh token required'),
+        401: OpenApiResponse(description='Invalid refresh token')
+    },
+    summary="User logout",
+    description="Invalidate refresh token to logout user"
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@ratelimit(key='user', rate='5/m', method='POST', block=True)
+def logout(request):
+    try:
+        refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return api_response(success=False, message='Refresh token required', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        refresh = RefreshToken(refresh_token)
+        refresh.blacklist()
+        return api_response(data={'message': 'Logout successful'})
+    except (TokenError, InvalidToken) as e:
+        return api_response(success=False, message='Invalid or expired refresh token', status_code=status.HTTP_401_UNAUTHORIZED)
+    except Exception as e:
+        return api_response(success=False, message='Logout failed', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Authentication'],
+    responses={
+        200: UserSerializer,
+        401: OpenApiResponse(description='Authentication required')
+    },
+    summary="Get current user",
+    description="Get current authenticated user information"
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@ratelimit(key='user', rate='30/m', method='GET', block=True)
+def get_current_user(request):
+    try:
+        serializer = UserSerializer(request.user)
+        return api_response(data=serializer.data)
+    except Exception as e:
+        return api_response(success=False, message='Failed to retrieve user information', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Authentication'],
+    request=UserSerializer,
+    responses={
+        200: UserSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
+        401: OpenApiResponse(description='Authentication required')
+    },
+    summary="Update current user",
+    description="Update current authenticated user information"
+)
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+@ratelimit(key='user', rate='5/m', method='PATCH', block=True)
+def update_current_user(request):
+    try:
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data=serializer.data)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return api_response(success=False, message='Failed to update user information', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Authentication'],
     request=AdminLoginSerializer,
     responses={
         200: OpenApiResponse(description='Admin login successful', response=UserSerializer),
@@ -280,8 +353,8 @@ def apply_job(request):
     try:
         serializer = JobApplicationSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return api_response(data={'message': 'Application submitted successfully'}, status_code=status.HTTP_201_CREATED)
+            application = serializer.save()
+            return api_response(data={'message': 'Application submitted successfully', 'application_id': str(application.id)}, status_code=status.HTTP_201_CREATED)
         return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
     except ValidationError as e:
         return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
@@ -289,6 +362,43 @@ def apply_job(request):
         return api_response(success=False, message='Failed to submit application', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         return api_response(success=False, message='Application submission failed', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Careers'],
+    responses={
+        200: JobApplicationSerializer,
+        404: OpenApiResponse(description='Application not found')
+    },
+    summary="Get application status",
+    description="Get application status for applicant (optional)"
+)
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+@ratelimit(key='ip', rate='10/m', method='GET', block=True)
+def get_application_status(request, pk):
+    try:
+        application = get_object_or_404(JobApplication, pk=pk)
+        # Return limited information for applicants
+        serializer = JobApplicationSerializer(application)
+        data = serializer.data
+        # Only include status-related fields for privacy
+        limited_data = {
+            'id': data['id'],
+            'first_name': data['first_name'],
+            'last_name': data['last_name'],
+            'email': data['email'],
+            'position': data['position'],
+            'status': data['status'],
+            'applied_at': data['applied_at'],
+            'updated_at': data['updated_at']
+        }
+        return api_response(data=limited_data)
+    except JobApplication.DoesNotExist:
+        return api_response(success=False, message='Application not found', status_code=status.HTTP_404_NOT_FOUND)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve application', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Contact Views
 @extend_schema(
@@ -387,6 +497,32 @@ def admin_applications(request):
         return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
+    tags=['Admin'],
+    responses={
+        200: JobApplicationSerializer,
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Application not found')
+    },
+    summary="Get application detail",
+    description="Get detailed information about a specific job application (admin only)"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_application_detail(request, pk):
+    try:
+        application = get_object_or_404(JobApplication, pk=pk)
+        serializer = JobApplicationSerializer(application)
+        return api_response(data=serializer.data)
+    except JobApplication.DoesNotExist:
+        return api_response(success=False, message='Application not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve application', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
     request=JobApplicationSerializer,
     responses={
         200: JobApplicationSerializer,
@@ -396,7 +532,7 @@ def admin_applications(request):
     summary="Update application",
     description="Update job application status or details (admin only)"
 )
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_update_application(request, pk):
     try:
@@ -550,6 +686,32 @@ def admin_contacts(request):
 
 @extend_schema(
     tags=['Admin'],
+    responses={
+        200: ContactSubmissionSerializer,
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Contact not found')
+    },
+    summary="Get contact detail",
+    description="Get detailed information about a specific contact submission (admin only)"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_contact_detail(request, pk):
+    try:
+        contact = get_object_or_404(ContactSubmission, pk=pk)
+        serializer = ContactSubmissionSerializer(contact)
+        return api_response(data=serializer.data)
+    except ContactSubmission.DoesNotExist:
+        return api_response(success=False, message='Contact not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve contact', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin'],
     request=ContactSubmissionSerializer,
     responses={
         200: ContactSubmissionSerializer,
@@ -560,7 +722,7 @@ def admin_contacts(request):
     summary="Update contact",
     description="Update contact submission details (admin only)"
 )
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_update_contact(request, pk):
     # Update contact
@@ -662,6 +824,32 @@ def admin_positions(request):
 
 @extend_schema(
     tags=['Admin'],
+    responses={
+        200: PositionSerializer,
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Position not found')
+    },
+    summary="Get position detail",
+    description="Get detailed information about a specific position (admin only)"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_position_detail(request, pk):
+    try:
+        position = get_object_or_404(Position, pk=pk)
+        serializer = PositionSerializer(position)
+        return api_response(data=serializer.data)
+    except Position.DoesNotExist:
+        return api_response(success=False, message='Position not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve position', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin'],
     request=PositionSerializer,
     responses={
         201: PositionSerializer,
@@ -692,7 +880,7 @@ def admin_create_position(request):
     summary="Update position",
     description="Update job position details (admin only)"
 )
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_update_position(request, pk):
     # update job position details (admin only)
@@ -869,6 +1057,32 @@ def admin_cms_documents(request):
 
 @extend_schema(
     tags=['Admin CMS'],
+    responses={
+        200: DocumentSerializer,
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Document not found')
+    },
+    summary="Get document detail",
+    description="Get detailed information about a specific document (admin only)"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_cms_document_detail(request, pk):
+    try:
+        document = get_object_or_404(Document, pk=pk)
+        serializer = DocumentSerializer(document)
+        return api_response(data=serializer.data)
+    except Document.DoesNotExist:
+        return api_response(success=False, message='Document not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve document', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
     request=DocumentSerializer,
     responses={
         201: DocumentSerializer,
@@ -908,7 +1122,7 @@ def admin_cms_create_document(request):
     summary="Update document",
     description="Update document details (admin only)"
 )
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_cms_update_document(request, pk):
     try:
@@ -1103,6 +1317,32 @@ def admin_cms_images(request):
 
 @extend_schema(
     tags=['Admin CMS'],
+    responses={
+        200: ImageSerializer,
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Image not found')
+    },
+    summary="Get image detail",
+    description="Get detailed information about a specific image (admin only)"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_cms_image_detail(request, pk):
+    try:
+        image = get_object_or_404(Image, pk=pk)
+        serializer = ImageSerializer(image)
+        return api_response(data=serializer.data)
+    except Image.DoesNotExist:
+        return api_response(success=False, message='Image not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve image', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
     request=ImageSerializer,
     responses={
         201: ImageSerializer,
@@ -1142,7 +1382,7 @@ def admin_cms_create_image(request):
     summary="Update image",
     description="Update image details (admin only)"
 )
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_cms_update_image(request, pk):
     try:
@@ -1373,6 +1613,32 @@ def admin_cms_pages(request):
 
 @extend_schema(
     tags=['Admin CMS'],
+    responses={
+        200: PageSerializer,
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Page not found')
+    },
+    summary="Get page detail",
+    description="Get detailed information about a specific page (admin only)"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_cms_page_detail(request, pk):
+    try:
+        page = get_object_or_404(Page, pk=pk)
+        serializer = PageSerializer(page)
+        return api_response(data=serializer.data)
+    except Page.DoesNotExist:
+        return api_response(success=False, message='Page not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve page', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
     request=PageSerializer,
     responses={
         201: PageSerializer,
@@ -1412,7 +1678,7 @@ def admin_cms_create_page(request):
     summary="Update page",
     description="Update page details (admin only)"
 )
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_cms_update_page(request, pk):
     try:
