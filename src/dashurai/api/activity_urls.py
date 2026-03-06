@@ -1,8 +1,3 @@
-"""
-URL configuration for Activity endpoints.
-Includes both REST API and Server-Sent Events routes.
-"""
-
 from django.urls import path
 from .activity_views import ActivityListView, ActivityStreamView
 
