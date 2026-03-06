@@ -2,10 +2,6 @@ from django.db import models
 
 
 class Activity(models.Model):
-    """
-    Model to track recent activities across the application.
-    Used for admin dashboard activity logging and real-time updates.
-    """
     TYPE_CHOICES = [
         ('position', 'Position'),
         ('application', 'Application'),
