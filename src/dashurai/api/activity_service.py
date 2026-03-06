@@ -29,7 +29,7 @@ def create_activity(activity_type: str, action: str, description: str) -> Option
 def get_recent_activities(limit: int = 20) -> List[Activity]:
 
     try:
-        activities = Activity.objects.select_for_update().order_by('-created_at')[:limit]
+        activities = Activity.objects.order_by('-created_at')[:limit]
         return list(activities)
     except DatabaseError as e:
         logger.error(f"Failed to fetch recent activities: {e}")

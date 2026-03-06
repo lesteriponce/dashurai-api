@@ -5,8 +5,9 @@ from rest_framework.pagination import PageNumberPagination
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.openapi import OpenApiResponse, OpenApiTypes
 from django.db import DatabaseError
-from .activity_service import get_recent_activities, activity_to_dict
+from .activity_service import get_recent_activities, activity_to_dict, create_activity
 from .activity_serializers import ActivitySerializer, ActivityListSerializer
+from .views import api_response
 
 
 class ActivityPagination(PageNumberPagination):
@@ -44,22 +45,13 @@ class ActivityListView(APIView):
             })
             
         except (ValueError, TypeError) as e:
-            return Response({
-                'error': 'Invalid parameters',
-                'details': str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return api_response(success=False, message='Invalid parameters', status_code=status.HTTP_400_BAD_REQUEST)
             
         except DatabaseError as e:
-            return Response({
-                'error': 'Database error',
-                'details': 'Failed to retrieve activities'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return api_response(success=False, message='Database error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
         except Exception as e:
-            return Response({
-                'error': 'Internal server error',
-                'details': 'An unexpected error occurred'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return api_response(success=False, message='Internal server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ActivityStreamView(APIView):
@@ -87,19 +79,26 @@ class ActivityStreamView(APIView):
             }, status=status.HTTP_200_OK)
             
         except (ValueError, TypeError) as e:
-            return Response({
-                'error': 'Invalid parameters',
-                'details': str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return api_response(success=False, message='Invalid parameters', status_code=status.HTTP_400_BAD_REQUEST)
             
         except DatabaseError as e:
-            return Response({
-                'error': 'Database error',
-                'details': 'Failed to retrieve activity stream'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return api_response(success=False, message='Database error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
         except Exception as e:
-            return Response({
-                'error': 'Internal server error',
-                'details': 'An unexpected error occurred'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return api_response(success=False, message='Internal server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def create_and_broadcast_activity(activity_type: str, action: str, description: str):
+    try:
+        activity = create_activity(activity_type, action, description)
+        if activity:
+            # In a real implementation, this would broadcast via WebSocket
+            # For now, we just create the activity record
+            return activity
+        return None
+    except Exception as e:
+        # Log the error but don't break the main functionality
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to create and broadcast activity: {e}")
+        return None
