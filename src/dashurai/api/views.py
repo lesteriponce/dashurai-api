@@ -796,6 +796,165 @@ def cms_find_document(request):
     except Exception as e:
         return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# Admin CMS Views - Documents
+@extend_schema(
+    tags=['Admin CMS'],
+    responses={
+        200: DocumentSerializer(many=True),
+        403: OpenApiResponse(description='Admin access required')
+    },
+    summary="List all documents",
+    description="Get list of all documents including unpublished ones (admin only)"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_cms_documents(request):
+    try:
+        documents = Document.objects.all()
+        
+        # Search by title or category
+        search = request.GET.get('search', '')
+        if search:
+            documents = documents.filter(
+                models.Q(title__icontains=search) |
+                models.Q(category__icontains=search)
+            )
+        
+        # Filter by published status
+        is_published = request.GET.get('is_published', '')
+        if is_published.lower() in ['true', 'false']:
+            documents = documents.filter(is_published=is_published.lower() == 'true')
+        
+        # Filter by category
+        category = request.GET.get('category', '')
+        if category:
+            documents = documents.filter(category__icontains=category)
+        
+        # Filter by date range
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        if date_from:
+            try:
+                date_from_obj = parse_date(date_from)
+                if date_from_obj:
+                    documents = documents.filter(created_at__date__gte=date_from_obj)
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                date_to_obj = parse_date(date_to)
+                if date_to_obj:
+                    documents = documents.filter(created_at__date__lte=date_to_obj)
+            except ValueError:
+                pass
+        
+        documents = documents.order_by('-created_at')
+        
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 20
+        result_page = paginator.paginate_queryset(documents, request)
+        
+        serializer = DocumentSerializer(result_page, many=True)
+        return paginator.get_paginated_response({
+            'success': True,
+            'data': serializer.data
+        })
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve documents', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
+    request=DocumentSerializer,
+    responses={
+        201: DocumentSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
+        403: OpenApiResponse(description='Admin access required')
+    },
+    summary="Create document",
+    description="Create a new document (admin only)"
+)
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_cms_create_document(request):
+    try:
+        serializer = DocumentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data=serializer.data, status_code=status.HTTP_201_CREATED)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to create document', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
+    request=DocumentSerializer,
+    responses={
+        200: DocumentSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Document not found')
+    },
+    summary="Update document",
+    description="Update document details (admin only)"
+)
+@api_view(['PUT'])
+@permission_classes([IsAdminUser])
+def admin_cms_update_document(request, pk):
+    try:
+        document = get_object_or_404(Document, pk=pk)
+        serializer = DocumentSerializer(document, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data=serializer.data)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except Document.DoesNotExist:
+        return api_response(success=False, message='Document not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to update document', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
+    responses={
+        200: OpenApiResponse(description='Document deleted successfully'),
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Document not found')
+    },
+    summary="Delete document",
+    description="Delete a document (admin only)"
+)
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_cms_delete_document(request, pk):
+    try:
+        document = get_object_or_404(Document, pk=pk)
+        document.delete()
+        return api_response(data={'message': 'Document deleted successfully'})
+    except Document.DoesNotExist:
+        return api_response(success=False, message='Document not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to delete document', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # CMS Views - Images
 @extend_schema(
     tags=['CMS - Images'],
@@ -868,6 +1027,165 @@ def cms_find_image(request):
         return api_response(data=serializer.data)
     except DatabaseError as e:
         return api_response(success=False, message='Failed to search images', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Admin CMS Views - Images
+@extend_schema(
+    tags=['Admin CMS'],
+    responses={
+        200: ImageSerializer(many=True),
+        403: OpenApiResponse(description='Admin access required')
+    },
+    summary="List all images",
+    description="Get list of all images including unpublished ones (admin only)"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_cms_images(request):
+    try:
+        images = Image.objects.all()
+        
+        # Search by title or category
+        search = request.GET.get('search', '')
+        if search:
+            images = images.filter(
+                models.Q(title__icontains=search) |
+                models.Q(category__icontains=search)
+            )
+        
+        # Filter by published status
+        is_published = request.GET.get('is_published', '')
+        if is_published.lower() in ['true', 'false']:
+            images = images.filter(is_published=is_published.lower() == 'true')
+        
+        # Filter by category
+        category = request.GET.get('category', '')
+        if category:
+            images = images.filter(category__icontains=category)
+        
+        # Filter by date range
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        if date_from:
+            try:
+                date_from_obj = parse_date(date_from)
+                if date_from_obj:
+                    images = images.filter(created_at__date__gte=date_from_obj)
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                date_to_obj = parse_date(date_to)
+                if date_to_obj:
+                    images = images.filter(created_at__date__lte=date_to_obj)
+            except ValueError:
+                pass
+        
+        images = images.order_by('-created_at')
+        
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 20
+        result_page = paginator.paginate_queryset(images, request)
+        
+        serializer = ImageSerializer(result_page, many=True)
+        return paginator.get_paginated_response({
+            'success': True,
+            'data': serializer.data
+        })
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve images', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
+    request=ImageSerializer,
+    responses={
+        201: ImageSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
+        403: OpenApiResponse(description='Admin access required')
+    },
+    summary="Create image",
+    description="Create a new image (admin only)"
+)
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_cms_create_image(request):
+    try:
+        serializer = ImageSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data=serializer.data, status_code=status.HTTP_201_CREATED)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to create image', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
+    request=ImageSerializer,
+    responses={
+        200: ImageSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Image not found')
+    },
+    summary="Update image",
+    description="Update image details (admin only)"
+)
+@api_view(['PUT'])
+@permission_classes([IsAdminUser])
+def admin_cms_update_image(request, pk):
+    try:
+        image = get_object_or_404(Image, pk=pk)
+        serializer = ImageSerializer(image, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data=serializer.data)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except Image.DoesNotExist:
+        return api_response(success=False, message='Image not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to update image', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
+    responses={
+        200: OpenApiResponse(description='Image deleted successfully'),
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Image not found')
+    },
+    summary="Delete image",
+    description="Delete an image (admin only)"
+)
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_cms_delete_image(request, pk):
+    try:
+        image = get_object_or_404(Image, pk=pk)
+        image.delete()
+        return api_response(data={'message': 'Image deleted successfully'})
+    except Image.DoesNotExist:
+        return api_response(success=False, message='Image not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to delete image', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -979,5 +1297,164 @@ def cms_find_page(request):
         return api_response(data=serializer.data)
     except DatabaseError as e:
         return api_response(success=False, message='Failed to search pages', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Admin CMS Views - Pages
+@extend_schema(
+    tags=['Admin CMS'],
+    responses={
+        200: PageSerializer(many=True),
+        403: OpenApiResponse(description='Admin access required')
+    },
+    summary="List all pages",
+    description="Get list of all pages including unpublished ones (admin only)"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_cms_pages(request):
+    try:
+        pages = Page.objects.all()
+        
+        # Search by title or template
+        search = request.GET.get('search', '')
+        if search:
+            pages = pages.filter(
+                models.Q(title__icontains=search) |
+                models.Q(template__icontains=search)
+            )
+        
+        # Filter by status
+        status = request.GET.get('status', '')
+        if status:
+            pages = pages.filter(status=status)
+        
+        # Filter by template
+        template = request.GET.get('template', '')
+        if template:
+            pages = pages.filter(template__icontains=template)
+        
+        # Filter by date range
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        if date_from:
+            try:
+                date_from_obj = parse_date(date_from)
+                if date_from_obj:
+                    pages = pages.filter(created_at__date__gte=date_from_obj)
+            except ValueError:
+                pass
+        if date_to:
+            try:
+                date_to_obj = parse_date(date_to)
+                if date_to_obj:
+                    pages = pages.filter(created_at__date__lte=date_to_obj)
+            except ValueError:
+                pass
+        
+        pages = pages.order_by('-created_at')
+        
+        # Apply pagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 20
+        result_page = paginator.paginate_queryset(pages, request)
+        
+        serializer = PageSerializer(result_page, many=True)
+        return paginator.get_paginated_response({
+            'success': True,
+            'data': serializer.data
+        })
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to retrieve pages', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
+    request=PageSerializer,
+    responses={
+        201: PageSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
+        403: OpenApiResponse(description='Admin access required')
+    },
+    summary="Create page",
+    description="Create a new page (admin only)"
+)
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_cms_create_page(request):
+    try:
+        serializer = PageSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data=serializer.data, status_code=status.HTTP_201_CREATED)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to create page', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
+    request=PageSerializer,
+    responses={
+        200: PageSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Page not found')
+    },
+    summary="Update page",
+    description="Update page details (admin only)"
+)
+@api_view(['PUT'])
+@permission_classes([IsAdminUser])
+def admin_cms_update_page(request, pk):
+    try:
+        page = get_object_or_404(Page, pk=pk)
+        serializer = PageSerializer(page, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(data=serializer.data)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except Page.DoesNotExist:
+        return api_response(success=False, message='Page not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to update page', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@extend_schema(
+    tags=['Admin CMS'],
+    responses={
+        200: OpenApiResponse(description='Page deleted successfully'),
+        403: OpenApiResponse(description='Admin access required'),
+        404: OpenApiResponse(description='Page not found')
+    },
+    summary="Delete page",
+    description="Delete a page (admin only)"
+)
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_cms_delete_page(request, pk):
+    try:
+        page = get_object_or_404(Page, pk=pk)
+        page.delete()
+        return api_response(data={'message': 'Page deleted successfully'})
+    except Page.DoesNotExist:
+        return api_response(success=False, message='Page not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to delete page', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
