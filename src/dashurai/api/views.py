@@ -123,7 +123,6 @@ class RegisterView(APIView):
             400: OpenApiResponse(description='Bad request - validation errors')
         }
     )
-    @ratelimit(key='ip', rate='3/m', method='POST', block=True)
     def post(self, request):
         # register a new user account
         serializer = RegisterSerializer(data=request.data)
@@ -326,10 +325,10 @@ def positions_list(request):
 @permission_classes([permissions.AllowAny])
 def position_detail(request, pk):
     try:
-        position = get_object_or_404(Position, pk=pk, status='active')
+        position = Position.objects.get(pk=pk, status='active')
         serializer = PositionSerializer(position)
         return api_response(data=serializer.data)
-    except Position.DoesNotExist:
+    except (Position.DoesNotExist, ValueError, ValidationError):
         return api_response(success=False, message='Position not found', status_code=status.HTTP_404_NOT_FOUND)
     except DatabaseError as e:
         return api_response(success=False, message='Failed to retrieve position', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -393,8 +392,7 @@ def get_application_status(request, pk):
             'email': data['email'],
             'position': data['position'],
             'status': data['status'],
-            'applied_at': data['applied_at'],
-            'updated_at': data['updated_at']
+            'applied_at': data['applied_at']
         }
         return api_response(data=limited_data)
     except JobApplication.DoesNotExist:
