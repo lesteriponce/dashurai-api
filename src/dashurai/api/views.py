@@ -18,7 +18,7 @@ from .versioning import get_api_version_info
 from .serializers import (
     LoginSerializer, RegisterSerializer, UserSerializer,
     PositionSerializer, JobApplicationSerializer, ContactSubmissionSerializer,
-    AdminLoginSerializer
+    AdminLoginSerializer, DashboardStatsSerializer
 )
 from cms.serializers import DocumentSerializer, ImageSerializer, PageSerializer
 from users.models import User
@@ -185,6 +185,38 @@ def admin_login(request):
             'user': UserSerializer(user).data
         })
     return api_response(success=False, message='Invalid admin credentials', status_code=status.HTTP_401_UNAUTHORIZED)
+
+# Dashboard view for admin stats
+@extend_schema(
+    tags=['Admin'],
+    responses={
+        200: DashboardStatsSerializer
+    },
+    summary="Admin Dashboard",
+    description="Get admin dashboard statistics"
+)
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+@ratelimit(key='user', rate='10/m', method='GET', block=True)
+def admin_dashboard(request):
+    try:
+        total_applications = JobApplication.objects.count()
+        total_contacts = ContactSubmission.objects.count()
+        total_positions = Position.objects.count()
+        active_positions = Position.objects.filter(status='active').count()
+        
+        serializer = DashboardStatsSerializer ({
+            'total_applications': total_applications,
+            'total_contacts': total_contacts,
+            'total_positions': total_positions,
+            'active_positions': active_positions,
+        })
+        
+        return api_response(data=serializer.data)
+    except DatabaseError as e:
+        return api_response(success=False, message='Database error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message=f"Internal server error: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Career Views
 @extend_schema(

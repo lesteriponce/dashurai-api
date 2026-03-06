@@ -56,6 +56,13 @@ class ManualSchemaView(APIView):
                         'responses': {'201': {'description': 'Registration successful'}}
                     }
                 },
+                '/api/v1/admin/dashboard/': {
+                    'get': {
+                        'summary': 'Admin dashboard',
+                        'tags': ['Admin'],
+                        'responses': {'200': {'description': 'Dashboard data retrieved'}}
+                    }
+                },
                 '/api/v1/auth/refresh/': {
                     'post': {
                         'summary': 'Refresh JWT token',

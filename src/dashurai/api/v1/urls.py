@@ -15,6 +15,9 @@ urlpatterns = [
     
     # Admin Authentication
     path('admin/login/', views.admin_login, name='admin_login'),
+
+    # Dashboard Stats
+    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     
     # Career URLs
     path('careers/positions/', views.positions_list, name='positions_list'),
