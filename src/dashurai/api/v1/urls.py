@@ -33,16 +33,16 @@ urlpatterns = [
     
     # Admin URLs - Applications
     path('admin/applications/', views.admin_applications, name='admin_applications'),
-    path('admin/applications/<int:pk>/', views.admin_application_detail, name='admin_application_detail'),
-    path('admin/applications/<int:pk>/update/', views.admin_update_application, name='admin_update_application'),
-    path('admin/applications/<int:pk>/delete/', views.admin_delete_application, name='admin_delete_application'),
-    path('admin/applications/<int:pk>/resume/', views.admin_download_resume, name='admin_download_resume'),
+    path('admin/applications/<str:pk>/', views.admin_application_detail, name='admin_application_detail'),
+    path('admin/applications/<str:pk>/update/', views.admin_update_application, name='admin_update_application'),
+    path('admin/applications/<str:pk>/delete/', views.admin_delete_application, name='admin_delete_application'),
+    path('admin/applications/<str:pk>/resume/', views.admin_download_resume, name='admin_download_resume'),
     
     # Admin URLs - Contacts
     path('admin/contacts/', views.admin_contacts, name='admin_contacts'),
-    path('admin/contacts/<int:pk>/', views.admin_contact_detail, name='admin_contact_detail'),
-    path('admin/contacts/<int:pk>/update/', views.admin_update_contact, name='admin_update_contact'),
-    path('admin/contacts/<int:pk>/delete/', views.admin_delete_contact, name='admin_delete_contact'),
+    path('admin/contacts/<str:pk>/', views.admin_contact_detail, name='admin_contact_detail'),
+    path('admin/contacts/<str:pk>/update/', views.admin_update_contact, name='admin_update_contact'),
+    path('admin/contacts/<str:pk>/delete/', views.admin_delete_contact, name='admin_delete_contact'),
     
     # Admin URLs - Positions
     path('admin/positions/', views.admin_positions, name='admin_positions'),

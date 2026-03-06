@@ -621,6 +621,7 @@ def admin_delete_application(request, pk):
 )
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
+@ratelimit(key='user', rate='20/m', method='GET', block=True)
 def admin_download_resume(request, pk):
     try:
         application = get_object_or_404(JobApplication, pk=pk)
@@ -770,20 +771,30 @@ def admin_contact_detail(request, pk):
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_update_contact(request, pk):
-    # Update contact
-    contact = get_object_or_404(ContactSubmission, pk=pk)
-    serializer = ContactSubmissionSerializer(contact, data=request.data, partial=True)
-    if serializer.is_valid():
-        updated_contact = serializer.save()
-        # Log activity - check if response was sent
-        from .activity_views import create_and_broadcast_activity
-        
-        # Check if status was updated to indicate response sent
-        if 'status' in request.data and updated_contact.status:
-            create_and_broadcast_activity('contact_form', 'responded', f"Response sent to inquiry from {updated_contact.name}")
-        
-        return api_response(data=serializer.data)
-    return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    try:
+        contact = get_object_or_404(ContactSubmission, pk=pk)
+        serializer = ContactSubmissionSerializer(contact, data=request.data, partial=True)
+        if serializer.is_valid():
+            updated_contact = serializer.save()
+            # Log activity - check if response was sent
+            from .activity_views import create_and_broadcast_activity
+            
+            # Check if status was updated to indicate response sent
+            if 'status' in request.data and updated_contact.status:
+                create_and_broadcast_activity('contact_form', 'responded', f"Response sent to inquiry from {updated_contact.name}")
+            
+            return api_response(data=serializer.data)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except ContactSubmission.DoesNotExist:
+        return api_response(success=False, message='Contact not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to update contact', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     tags=['Admin'],
@@ -798,10 +809,18 @@ def admin_update_contact(request, pk):
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def admin_delete_contact(request, pk):
-    # Delete contact
-    contact = get_object_or_404(ContactSubmission, pk=pk)
-    contact.delete()
-    return api_response(data={'message': 'Contact deleted successfully'})
+    try:
+        contact = get_object_or_404(ContactSubmission, pk=pk)
+        contact.delete()
+        return api_response(data={'message': 'Contact deleted successfully'})
+    except ContactSubmission.DoesNotExist:
+        return api_response(success=False, message='Contact not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to delete contact', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Admin Views - Positions
 @extend_schema(
@@ -927,14 +946,23 @@ def admin_position_detail(request, pk):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def admin_create_position(request):
-    serializer = PositionSerializer(data=request.data)
-    if serializer.is_valid():
-        position = serializer.save()
-        # Log activity
-        from .activity_views import create_and_broadcast_activity
-        create_and_broadcast_activity('position', 'created', f"New position added: {position.title}")
-        return api_response(data=serializer.data, status_code=status.HTTP_201_CREATED)
-    return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    try:
+        serializer = PositionSerializer(data=request.data)
+        if serializer.is_valid():
+            position = serializer.save()
+            # Log activity
+            from .activity_views import create_and_broadcast_activity
+            create_and_broadcast_activity('position', 'created', f"New position added: {position.title}")
+            return api_response(data=serializer.data, status_code=status.HTTP_201_CREATED)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to create position', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     tags=['Admin'],
@@ -951,16 +979,26 @@ def admin_create_position(request):
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_update_position(request, pk):
-    # update job position details (admin only)
-    position = get_object_or_404(Position, pk=pk)
-    serializer = PositionSerializer(position, data=request.data, partial=True)
-    if serializer.is_valid():
-        updated_position = serializer.save()
-        # Log activity
-        from .activity_views import create_and_broadcast_activity
-        create_and_broadcast_activity('position', 'updated', f"Position updated: {updated_position.title}")
-        return api_response(data=serializer.data)
-    return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    try:
+        position = get_object_or_404(Position, pk=pk)
+        serializer = PositionSerializer(position, data=request.data, partial=True)
+        if serializer.is_valid():
+            updated_position = serializer.save()
+            # Log activity
+            from .activity_views import create_and_broadcast_activity
+            create_and_broadcast_activity('position', 'updated', f"Position updated: {updated_position.title}")
+            return api_response(data=serializer.data)
+        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    except Position.DoesNotExist:
+        return api_response(success=False, message='Position not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except ValidationError as e:
+        return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to update position', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     tags=['Admin'],
@@ -975,14 +1013,22 @@ def admin_update_position(request, pk):
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def admin_delete_position(request, pk):
-    # delete admin only
-    position = get_object_or_404(Position, pk=pk)
-    position_title = position.title  # Store title before deletion
-    position.delete()
-    # Log activity
-    from .activity_views import create_and_broadcast_activity
-    create_and_broadcast_activity('position', 'deleted', f"Position deleted: {position_title}")
-    return api_response(data={'message': 'Position deleted successfully'})
+    try:
+        position = get_object_or_404(Position, pk=pk)
+        position_title = position.title  # Store title before deletion
+        position.delete()
+        # Log activity
+        from .activity_views import create_and_broadcast_activity
+        create_and_broadcast_activity('position', 'deleted', f"Position deleted: {position_title}")
+        return api_response(data={'message': 'Position deleted successfully'})
+    except Position.DoesNotExist:
+        return api_response(success=False, message='Position not found', status_code=status.HTTP_404_NOT_FOUND)
+    except PermissionDenied:
+        return api_response(success=False, message='Admin access required', status_code=status.HTTP_403_FORBIDDEN)
+    except DatabaseError as e:
+        return api_response(success=False, message='Failed to delete position', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return api_response(success=False, message='Server error', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # CMS Views - Documents
 @extend_schema(
@@ -1071,6 +1117,7 @@ def cms_find_document(request):
 )
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
+@ratelimit(key='user', rate='30/m', method='GET', block=True)
 def admin_cms_documents(request):
     try:
         documents = Document.objects.all()
@@ -1144,6 +1191,7 @@ def admin_cms_documents(request):
 )
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAdminUser])
+@ratelimit(key='user', rate='20/m', method=['GET', 'PATCH'], block=True)
 def admin_cms_document_detail(request, pk):
     try:
         document = get_object_or_404(Document, pk=pk)
@@ -1182,8 +1230,25 @@ def admin_cms_document_detail(request, pk):
 )
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
+@ratelimit(key='user', rate='10/m', method='POST', block=True)
 def admin_cms_create_document(request):
     try:
+        # Validate file upload
+        if 'file' not in request.FILES:
+            return api_response(success=False, message='No file provided', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        file = request.FILES['file']
+        
+        # File size validation (max 10MB)
+        if file.size > 10 * 1024 * 1024:
+            return api_response(success=False, message='File size exceeds 10MB limit', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        # File type validation
+        allowed_extensions = ['.pdf', '.doc', '.docx', '.txt', '.rtf']
+        file_extension = file.name.lower().split('.')[-1]
+        if f'.{file_extension}' not in allowed_extensions:
+            return api_response(success=False, message=f'File type not allowed. Allowed types: {", ".join(allowed_extensions)}', status_code=status.HTTP_400_BAD_REQUEST)
+        
         serializer = DocumentSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -1212,6 +1277,7 @@ def admin_cms_create_document(request):
 )
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAdminUser])
+@ratelimit(key='user', rate='15/m', method=['PUT', 'PATCH'], block=True)
 def admin_cms_update_document(request, pk):
     try:
         document = get_object_or_404(Document, pk=pk)
@@ -1243,6 +1309,7 @@ def admin_cms_update_document(request, pk):
 )
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
+@ratelimit(key='user', rate='10/m', method='DELETE', block=True)
 def admin_cms_delete_document(request, pk):
     try:
         document = get_object_or_404(Document, pk=pk)
@@ -1457,6 +1524,27 @@ def admin_cms_image_detail(request, pk):
 @permission_classes([IsAdminUser])
 def admin_cms_create_image(request):
     try:
+        # Validate file upload
+        if 'file' not in request.FILES:
+            return api_response(success=False, message='No file provided', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        file = request.FILES['file']
+        
+        # File size validation (max 5MB for images)
+        if file.size > 5 * 1024 * 1024:
+            return api_response(success=False, message='File size exceeds 5MB limit', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        # File type validation
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+        file_extension = file.name.lower().split('.')[-1]
+        if f'.{file_extension}' not in allowed_extensions:
+            return api_response(success=False, message=f'File type not allowed. Allowed types: {", ".join(allowed_extensions)}', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        # MIME type validation
+        allowed_mime_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        if file.content_type not in allowed_mime_types:
+            return api_response(success=False, message='Invalid MIME type', status_code=status.HTTP_400_BAD_REQUEST)
+        
         serializer = ImageSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -1585,7 +1673,7 @@ def cms_page_detail(request, pk):
     description="Execute a specific action on a page"
 )
 @api_view(['POST'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([IsAdminUser])
 def cms_page_action(request, pk, action_name):
     try:
         page = get_object_or_404(Page, pk=pk)

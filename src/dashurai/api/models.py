@@ -6,6 +6,9 @@ class Activity(models.Model):
         ('position', 'Position'),
         ('application', 'Application'),
         ('contact_form', 'Contact Form'),
+        ('document', 'Document'),
+        ('image', 'Image'),
+        ('page', 'Page'),
     ]
     
     ACTION_CHOICES = [
