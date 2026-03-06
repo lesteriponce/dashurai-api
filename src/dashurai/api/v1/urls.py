@@ -59,4 +59,22 @@ urlpatterns = [
     path('content/pages/<str:pk>/', views.cms_page_detail, name='cms_page_detail'),
     path('content/pages/<str:pk>/action/<str:action_name>/', views.cms_page_action, name='cms_page_action'),
     path('content/pages/find/', views.cms_find_page, name='cms_find_page'),
+    
+    # Admin CMS URLs - Documents
+    path('admin/content/documents/', views.admin_cms_documents, name='admin_cms_documents'),
+    path('admin/content/documents/create/', views.admin_cms_create_document, name='admin_cms_create_document'),
+    path('admin/content/documents/<str:pk>/', views.admin_cms_update_document, name='admin_cms_update_document'),
+    path('admin/content/documents/<str:pk>/delete/', views.admin_cms_delete_document, name='admin_cms_delete_document'),
+    
+    # Admin CMS URLs - Images
+    path('admin/content/images/', views.admin_cms_images, name='admin_cms_images'),
+    path('admin/content/images/create/', views.admin_cms_create_image, name='admin_cms_create_image'),
+    path('admin/content/images/<str:pk>/', views.admin_cms_update_image, name='admin_cms_update_image'),
+    path('admin/content/images/<str:pk>/delete/', views.admin_cms_delete_image, name='admin_cms_delete_image'),
+    
+    # Admin CMS URLs - Pages
+    path('admin/content/pages/', views.admin_cms_pages, name='admin_cms_pages'),
+    path('admin/content/pages/create/', views.admin_cms_create_page, name='admin_cms_create_page'),
+    path('admin/content/pages/<str:pk>/', views.admin_cms_update_page, name='admin_cms_update_page'),
+    path('admin/content/pages/<str:pk>/delete/', views.admin_cms_delete_page, name='admin_cms_delete_page'),
 ]

@@ -175,6 +175,102 @@ class ManualSchemaView(APIView):
                         'responses': {'200': {'description': 'Page action completed successfully'}}
                     }
                 },
+                '/api/v1/admin/content/documents/': {
+                    'get': {
+                        'summary': 'List all documents (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'200': {'description': 'Successful response'}}
+                    }
+                },
+                '/api/v1/admin/content/documents/create/': {
+                    'post': {
+                        'summary': 'Create document (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'201': {'description': 'Document created successfully'}}
+                    }
+                },
+                '/api/v1/admin/content/documents/{pk}/': {
+                    'put': {
+                        'summary': 'Update document (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'200': {'description': 'Document updated successfully'}}
+                    }
+                },
+                '/api/v1/admin/content/documents/{pk}/delete/': {
+                    'delete': {
+                        'summary': 'Delete document (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'200': {'description': 'Document deleted successfully'}}
+                    }
+                },
+                '/api/v1/admin/content/images/': {
+                    'get': {
+                        'summary': 'List all images (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'200': {'description': 'Successful response'}}
+                    }
+                },
+                '/api/v1/admin/content/images/create/': {
+                    'post': {
+                        'summary': 'Create image (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'201': {'description': 'Image created successfully'}}
+                    }
+                },
+                '/api/v1/admin/content/images/{pk}/': {
+                    'put': {
+                        'summary': 'Update image (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'200': {'description': 'Image updated successfully'}}
+                    }
+                },
+                '/api/v1/admin/content/images/{pk}/delete/': {
+                    'delete': {
+                        'summary': 'Delete image (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'200': {'description': 'Image deleted successfully'}}
+                    }
+                },
+                '/api/v1/admin/content/pages/': {
+                    'get': {
+                        'summary': 'List all pages (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'200': {'description': 'Successful response'}}
+                    }
+                },
+                '/api/v1/admin/content/pages/create/': {
+                    'post': {
+                        'summary': 'Create page (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'201': {'description': 'Page created successfully'}}
+                    }
+                },
+                '/api/v1/admin/content/pages/{pk}/': {
+                    'put': {
+                        'summary': 'Update page (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'200': {'description': 'Page updated successfully'}}
+                    }
+                },
+                '/api/v1/admin/content/pages/{pk}/delete/': {
+                    'delete': {
+                        'summary': 'Delete page (admin only)',
+                        'tags': ['Admin CMS'],
+                        'security': [{'bearerAuth': []}],
+                        'responses': {'200': {'description': 'Page deleted successfully'}}
+                    }
+                },
                 '/api/v1/admin/applications/': {
                     'get': {
                         'summary': 'List all applications (admin only)',
@@ -271,6 +367,7 @@ class ManualSchemaView(APIView):
                 {'name': 'Careers', 'description': 'Job positions and application management'},
                 {'name': 'Contact', 'description': 'Contact form submissions'},
                 {'name': 'Admin', 'description': 'Administrative operations (requires admin access)'},
+                {'name': 'Admin CMS', 'description': 'Administrative CMS operations (requires admin access)'},
                 {'name': 'CMS - Documents', 'description': 'Document management and retrieval'},
                 {'name': 'CMS - Images', 'description': 'Image management and retrieval'},
                 {'name': 'CMS - Pages', 'description': 'Page management and actions'}
