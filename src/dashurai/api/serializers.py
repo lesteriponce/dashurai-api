@@ -95,13 +95,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
+class DashboardStatsSerializer(serializers.Serializer):
+    total_applications = serializers.IntegerField()
+    total_contacts = serializers.IntegerField()
+    total_positions = serializers.IntegerField()
+    active_positions = serializers.IntegerField()
+    
 class PositionSerializer(serializers.ModelSerializer):
     type_display = serializers.CharField(source='get_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     
     class Meta:
         model = Position
-        fields = ('id', 'title', 'description', 'tags', 'image_url', 'department', 'type', 'type_display', 'status', 'status_display')
+        fields = ('id', 'title', 'description', 'role_overview', 'key_responsibilities', 'tags', 'image_url', 'department', 'type', 'type_display', 'status', 'status_display')
     
     def to_representation(self, instance):
         data = super().to_representation(instance)

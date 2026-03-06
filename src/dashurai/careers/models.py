@@ -22,6 +22,8 @@ class Position(models.Model):
     type = models.CharField(max_length=20, choices=POSITION_TYPES, default='full-time', db_index=True)
     status = models.CharField(max_length=20, choices=POSITION_STATUS, default='active', db_index=True)
     description = models.TextField()
+    role_overview = models.TextField(help_text="Detailed overview of the role")
+    key_responsibilities = models.JSONField(default=list, help_text="List of key responsibilities with title and description")
     tags = models.JSONField(default=list) 
     image_url = models.URLField(max_length=500, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -15,7 +15,7 @@ class PositionAdmin(admin.ModelAdmin):
             'fields': ('title', 'department', 'type', 'status')
         }),
         ('Details', {
-            'fields': ('description', 'tags', 'image_url')
+            'fields': ('description', 'role_overview', 'key_responsibilities', 'tags', 'image_url')
         }),
         ('Metadata', {
             'fields': ('id', 'created_at', 'updated_at'),
