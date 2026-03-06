@@ -1,6 +1,7 @@
-from django.urls import path
+from django.urls import path, include
 from api import views
 from api.views import APIVersionView
+from api.activity_urls import urlpatterns as activity_urls
 
 app_name = 'api_v1'
 
@@ -80,10 +81,13 @@ urlpatterns = [
     path('admin/content/images/<str:pk>/update/', views.admin_cms_update_image, name='admin_cms_update_image'),
     path('admin/content/images/<str:pk>/delete/', views.admin_cms_delete_image, name='admin_cms_delete_image'),
     
-    # Admin CMS URLs - Pages
+    # Admin URLs - Pages
     path('admin/content/pages/', views.admin_cms_pages, name='admin_cms_pages'),
     path('admin/content/pages/create/', views.admin_cms_create_page, name='admin_cms_create_page'),
     path('admin/content/pages/<str:pk>/', views.admin_cms_page_detail, name='admin_cms_page_detail'),
     path('admin/content/pages/<str:pk>/update/', views.admin_cms_update_page, name='admin_cms_update_page'),
     path('admin/content/pages/<str:pk>/delete/', views.admin_cms_delete_page, name='admin_cms_delete_page'),
+    
+    # Activity URLs
+    path('admin/', include((activity_urls, 'activities'))),
 ]
