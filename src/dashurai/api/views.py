@@ -505,21 +505,34 @@ def admin_applications(request):
 
 @extend_schema(
     tags=['Admin'],
+    request=JobApplicationSerializer,
     responses={
         200: JobApplicationSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
         403: OpenApiResponse(description='Admin access required'),
         404: OpenApiResponse(description='Application not found')
     },
-    summary="Get application detail",
-    description="Get detailed information about a specific job application (admin only)"
+    summary="Get or update application detail",
+    description="Get detailed information about a specific job application or update it with PATCH (admin only)"
 )
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_application_detail(request, pk):
     try:
         application = get_object_or_404(JobApplication, pk=pk)
-        serializer = JobApplicationSerializer(application)
-        return api_response(data=serializer.data)
+        
+        if request.method == 'PATCH':
+            serializer = JobApplicationSerializer(application, data=request.data, partial=True)
+            if serializer.is_valid():
+                updated_application = serializer.save()
+                # Log activity
+                from .activity_views import create_and_broadcast_activity
+                create_and_broadcast_activity('application', 'updated', f"Application updated: {updated_application.applicant_name}")
+                return api_response(data=serializer.data)
+            return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        else:  # GET
+            serializer = JobApplicationSerializer(application)
+            return api_response(data=serializer.data)
     except JobApplication.DoesNotExist:
         return api_response(success=False, message='Application not found', status_code=status.HTTP_404_NOT_FOUND)
     except PermissionDenied:
@@ -705,21 +718,34 @@ def admin_contacts(request):
 
 @extend_schema(
     tags=['Admin'],
+    request=ContactSubmissionSerializer,
     responses={
         200: ContactSubmissionSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
         403: OpenApiResponse(description='Admin access required'),
         404: OpenApiResponse(description='Contact not found')
     },
-    summary="Get contact detail",
-    description="Get detailed information about a specific contact submission (admin only)"
+    summary="Get or update contact detail",
+    description="Get detailed information about a specific contact submission or update it with PATCH (admin only)"
 )
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_contact_detail(request, pk):
     try:
         contact = get_object_or_404(ContactSubmission, pk=pk)
-        serializer = ContactSubmissionSerializer(contact)
-        return api_response(data=serializer.data)
+        
+        if request.method == 'PATCH':
+            serializer = ContactSubmissionSerializer(contact, data=request.data, partial=True)
+            if serializer.is_valid():
+                updated_contact = serializer.save()
+                # Log activity
+                from .activity_views import create_and_broadcast_activity
+                create_and_broadcast_activity('contact', 'updated', f"Contact updated: {updated_contact.name}")
+                return api_response(data=serializer.data)
+            return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        else:  # GET
+            serializer = ContactSubmissionSerializer(contact)
+            return api_response(data=serializer.data)
     except ContactSubmission.DoesNotExist:
         return api_response(success=False, message='Contact not found', status_code=status.HTTP_404_NOT_FOUND)
     except PermissionDenied:
@@ -850,21 +876,34 @@ def admin_positions(request):
 
 @extend_schema(
     tags=['Admin'],
+    request=PositionSerializer,
     responses={
         200: PositionSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
         403: OpenApiResponse(description='Admin access required'),
         404: OpenApiResponse(description='Position not found')
     },
-    summary="Get position detail",
-    description="Get detailed information about a specific position (admin only)"
+    summary="Get or update position detail",
+    description="Get detailed information about a specific position or update it with PATCH (admin only)"
 )
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_position_detail(request, pk):
     try:
         position = get_object_or_404(Position, pk=pk)
-        serializer = PositionSerializer(position)
-        return api_response(data=serializer.data)
+        
+        if request.method == 'PATCH':
+            serializer = PositionSerializer(position, data=request.data, partial=True)
+            if serializer.is_valid():
+                updated_position = serializer.save()
+                # Log activity
+                from .activity_views import create_and_broadcast_activity
+                create_and_broadcast_activity('position', 'updated', f"Position updated: {updated_position.title}")
+                return api_response(data=serializer.data)
+            return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        else:  # GET
+            serializer = PositionSerializer(position)
+            return api_response(data=serializer.data)
     except Position.DoesNotExist:
         return api_response(success=False, message='Position not found', status_code=status.HTTP_404_NOT_FOUND)
     except PermissionDenied:
@@ -1093,21 +1132,34 @@ def admin_cms_documents(request):
 
 @extend_schema(
     tags=['Admin CMS'],
+    request=DocumentSerializer,
     responses={
         200: DocumentSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
         403: OpenApiResponse(description='Admin access required'),
         404: OpenApiResponse(description='Document not found')
     },
-    summary="Get document detail",
-    description="Get detailed information about a specific document (admin only)"
+    summary="Get or update document detail",
+    description="Get detailed information about a specific document or update it with PATCH (admin only)"
 )
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_cms_document_detail(request, pk):
     try:
         document = get_object_or_404(Document, pk=pk)
-        serializer = DocumentSerializer(document)
-        return api_response(data=serializer.data)
+        
+        if request.method == 'PATCH':
+            serializer = DocumentSerializer(document, data=request.data, partial=True)
+            if serializer.is_valid():
+                updated_document = serializer.save()
+                # Log activity
+                from .activity_views import create_and_broadcast_activity
+                create_and_broadcast_activity('document', 'updated', f"Document updated: {updated_document.title}")
+                return api_response(data=serializer.data)
+            return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        else:  # GET
+            serializer = DocumentSerializer(document)
+            return api_response(data=serializer.data)
     except Document.DoesNotExist:
         return api_response(success=False, message='Document not found', status_code=status.HTTP_404_NOT_FOUND)
     except PermissionDenied:
@@ -1353,21 +1405,34 @@ def admin_cms_images(request):
 
 @extend_schema(
     tags=['Admin CMS'],
+    request=ImageSerializer,
     responses={
         200: ImageSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
         403: OpenApiResponse(description='Admin access required'),
         404: OpenApiResponse(description='Image not found')
     },
-    summary="Get image detail",
-    description="Get detailed information about a specific image (admin only)"
+    summary="Get or update image detail",
+    description="Get detailed information about a specific image or update it with PATCH (admin only)"
 )
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_cms_image_detail(request, pk):
     try:
         image = get_object_or_404(Image, pk=pk)
-        serializer = ImageSerializer(image)
-        return api_response(data=serializer.data)
+        
+        if request.method == 'PATCH':
+            serializer = ImageSerializer(image, data=request.data, partial=True)
+            if serializer.is_valid():
+                updated_image = serializer.save()
+                # Log activity
+                from .activity_views import create_and_broadcast_activity
+                create_and_broadcast_activity('image', 'updated', f"Image updated: {updated_image.title}")
+                return api_response(data=serializer.data)
+            return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        else:  # GET
+            serializer = ImageSerializer(image)
+            return api_response(data=serializer.data)
     except Image.DoesNotExist:
         return api_response(success=False, message='Image not found', status_code=status.HTTP_404_NOT_FOUND)
     except PermissionDenied:
@@ -1649,21 +1714,34 @@ def admin_cms_pages(request):
 
 @extend_schema(
     tags=['Admin CMS'],
+    request=PageSerializer,
     responses={
         200: PageSerializer,
+        400: OpenApiResponse(description='Bad request - validation errors'),
         403: OpenApiResponse(description='Admin access required'),
         404: OpenApiResponse(description='Page not found')
     },
-    summary="Get page detail",
-    description="Get detailed information about a specific page (admin only)"
+    summary="Get or update page detail",
+    description="Get detailed information about a specific page or update it with PATCH (admin only)"
 )
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAdminUser])
 def admin_cms_page_detail(request, pk):
     try:
         page = get_object_or_404(Page, pk=pk)
-        serializer = PageSerializer(page)
-        return api_response(data=serializer.data)
+        
+        if request.method == 'PATCH':
+            serializer = PageSerializer(page, data=request.data, partial=True)
+            if serializer.is_valid():
+                updated_page = serializer.save()
+                # Log activity
+                from .activity_views import create_and_broadcast_activity
+                create_and_broadcast_activity('page', 'updated', f"Page updated: {updated_page.title}")
+                return api_response(data=serializer.data)
+            return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        else:  # GET
+            serializer = PageSerializer(page)
+            return api_response(data=serializer.data)
     except Page.DoesNotExist:
         return api_response(success=False, message='Page not found', status_code=status.HTTP_404_NOT_FOUND)
     except PermissionDenied:
