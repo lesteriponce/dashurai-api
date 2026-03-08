@@ -425,7 +425,10 @@ def contact_submit(request):
             from .activity_views import create_and_broadcast_activity
             create_and_broadcast_activity('contact_form', 'created', "New contact form submission")
             return api_response(data={'message': 'Contact form submitted successfully'}, status_code=status.HTTP_201_CREATED)
-        return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Log detailed validation errors for debugging
+            print(f"Contact form validation errors: {serializer.errors}")
+            return api_response(success=False, message=f'Validation failed: {serializer.errors}', status_code=status.HTTP_400_BAD_REQUEST)    
     except ValidationError as e:
         return api_response(success=False, message='Validation failed', status_code=status.HTTP_400_BAD_REQUEST)
     except DatabaseError as e:
@@ -523,9 +526,9 @@ def admin_application_detail(request, pk):
             serializer = JobApplicationSerializer(application, data=request.data, partial=True)
             if serializer.is_valid():
                 updated_application = serializer.save()
-                # Log activity
-                from .activity_views import create_and_broadcast_activity
-                create_and_broadcast_activity('application', 'updated', f"Application updated: {updated_application.applicant_name}")
+                # Log activity temporary disabled
+                # from .activity_views import create_and_broadcast_activity
+                # create_and_broadcast_activity('application', 'updated', f"Application updated: {updated_application.applicant_name}")
                 return api_response(data=serializer.data)
             return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
         else:  # GET
@@ -558,17 +561,17 @@ def admin_update_application(request, pk):
         serializer = JobApplicationSerializer(application, data=request.data, partial=True)
         if serializer.is_valid():
             updated_application = serializer.save()
-            # Log activity - check if status changed or if it's an interview
-            from .activity_views import create_and_broadcast_activity
-            applicant_name = f"{updated_application.first_name} {updated_application.last_name}"
-            
-            # Check if status was changed to indicate review
-            if 'status' in request.data:
-                create_and_broadcast_activity('application', 'reviewed', f"Application reviewed: {applicant_name}")
-            
-            # Check if interview was scheduled
-            if 'interview_date' in request.data and updated_application.interview_date:
-                create_and_broadcast_activity('application', 'interview', f"Interview scheduled: {applicant_name}")
+            # Log activity - check if status changed or if it's an interview (temporary disabled)
+#            from .activity_views import create_and_broadcast_activity
+#            applicant_name = f"{updated_application.first_name} {updated_application.last_name}"
+#            
+#            # Check if status was changed to indicate review
+#            if 'status' in request.data:
+#                create_and_broadcast_activity('application', 'reviewed', f"Application reviewed: {applicant_name}")
+#            
+#            # Check if interview was scheduled
+#            if 'interview_date' in request.data and updated_application.interview_date:
+#                create_and_broadcast_activity('application', 'interview', f"Interview scheduled: {applicant_name}")
             
             return api_response(data=serializer.data)
         return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
@@ -737,9 +740,9 @@ def admin_contact_detail(request, pk):
             serializer = ContactSubmissionSerializer(contact, data=request.data, partial=True)
             if serializer.is_valid():
                 updated_contact = serializer.save()
-                # Log activity
-                from .activity_views import create_and_broadcast_activity
-                create_and_broadcast_activity('contact', 'updated', f"Contact updated: {updated_contact.name}")
+                # Log activity temporary disableed
+#                from .activity_views import create_and_broadcast_activity
+#                create_and_broadcast_activity('contact', 'updated', f"Contact updated: {updated_contact.name}")
                 return api_response(data=serializer.data)
             return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
         else:  # GET
@@ -774,12 +777,12 @@ def admin_update_contact(request, pk):
         serializer = ContactSubmissionSerializer(contact, data=request.data, partial=True)
         if serializer.is_valid():
             updated_contact = serializer.save()
-            # Log activity - check if response was sent
-            from .activity_views import create_and_broadcast_activity
-            
+            # Log activity - check if response was sent (temporary disabl)
+#            from .activity_views import create_and_broadcast_activity
+#            
             # Check if status was updated to indicate response sent
-            if 'status' in request.data and updated_contact.status:
-                create_and_broadcast_activity('contact_form', 'responded', f"Response sent to inquiry from {updated_contact.name}")
+#            if 'status' in request.data and updated_contact.status:
+#                create_and_broadcast_activity('contact_form', 'responded', f"Response sent to inquiry from {updated_contact.name}")
             
             return api_response(data=serializer.data)
         return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
@@ -983,8 +986,8 @@ def admin_update_position(request, pk):
         if serializer.is_valid():
             updated_position = serializer.save()
             # Log activity
-            from .activity_views import create_and_broadcast_activity
-            create_and_broadcast_activity('position', 'updated', f"Position updated: {updated_position.title}")
+#            from .activity_views import create_and_broadcast_activity
+#            create_and_broadcast_activity('position', 'updated', f"Position updated: {updated_position.title}")
             return api_response(data=serializer.data)
         return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
     except Position.DoesNotExist:
@@ -1015,9 +1018,9 @@ def admin_delete_position(request, pk):
         position = get_object_or_404(Position, pk=pk)
         position_title = position.title  # Store title before deletion
         position.delete()
-        # Log activity
-        from .activity_views import create_and_broadcast_activity
-        create_and_broadcast_activity('position', 'deleted', f"Position deleted: {position_title}")
+        # Log activity (temporary disable)
+#        from .activity_views import create_and_broadcast_activity
+#        create_and_broadcast_activity('position', 'deleted', f"Position deleted: {position_title}")
         return api_response(data={'message': 'Position deleted successfully'})
     except Position.DoesNotExist:
         return api_response(success=False, message='Position not found', status_code=status.HTTP_404_NOT_FOUND)
@@ -1198,9 +1201,9 @@ def admin_cms_document_detail(request, pk):
             serializer = DocumentSerializer(document, data=request.data, partial=True)
             if serializer.is_valid():
                 updated_document = serializer.save()
-                # Log activity
-                from .activity_views import create_and_broadcast_activity
-                create_and_broadcast_activity('document', 'updated', f"Document updated: {updated_document.title}")
+                # Log activity (temporar disable)
+             #   from .activity_views import create_and_broadcast_activity
+             #   create_and_broadcast_activity('document', 'updated', f"Document updated: {updated_document.title}")
                 return api_response(data=serializer.data)
             return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
         else:  # GET
@@ -1490,9 +1493,9 @@ def admin_cms_image_detail(request, pk):
             serializer = ImageSerializer(image, data=request.data, partial=True)
             if serializer.is_valid():
                 updated_image = serializer.save()
-                # Log activity
-                from .activity_views import create_and_broadcast_activity
-                create_and_broadcast_activity('image', 'updated', f"Image updated: {updated_image.title}")
+                # Log activity (temporar disable)
+            #    from .activity_views import create_and_broadcast_activity
+            #    create_and_broadcast_activity('image', 'updated', f"Image updated: {updated_image.title}")
                 return api_response(data=serializer.data)
             return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
         else:  # GET
@@ -1820,9 +1823,9 @@ def admin_cms_page_detail(request, pk):
             serializer = PageSerializer(page, data=request.data, partial=True)
             if serializer.is_valid():
                 updated_page = serializer.save()
-                # Log activity
-                from .activity_views import create_and_broadcast_activity
-                create_and_broadcast_activity('page', 'updated', f"Page updated: {updated_page.title}")
+                # Log activity (temporar disable)
+        #        from .activity_views import create_and_broadcast_activity
+        #        create_and_broadcast_activity('page', 'updated', f"Page updated: {updated_page.title}")
                 return api_response(data=serializer.data)
             return api_response(success=False, message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
         else:  # GET
