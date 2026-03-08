@@ -53,8 +53,8 @@ class LoginSerializer(serializers.Serializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8, 
                                    validators=[RegexValidator(
-                                       regex=r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]',
-                                       message='Password must contain at least 8 characters, one uppercase, one lowercase, one digit, and one special character'
+                                       regex=r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_\-+=])[A-Za-z\d@$!%*?&_\-+=]',
+                                       message='Password must contain at least 8 characters, one uppercase, one lowercase, one digit, and one special character (@$!%*?&_-+=)'
                                    )])
     password_confirm = serializers.CharField(write_only=True)
     
