@@ -155,6 +155,8 @@ class JobApplicationSerializer(serializers.ModelSerializer):
         return f"{obj.first_name} {obj.last_name}".strip()
     
     def validate_first_name(self, value):
+        if self.partial and value is None:
+            return value
         if not value or not value.strip():
             raise serializers.ValidationError("First name cannot be empty")
         if len(value.strip()) < 2:
@@ -164,6 +166,8 @@ class JobApplicationSerializer(serializers.ModelSerializer):
         return value.strip()
     
     def validate_last_name(self, value):
+        if self.partial and value is None:
+            return value
         if not value or not value.strip():
             raise serializers.ValidationError("Last name cannot be empty")
         if len(value.strip()) < 2:
@@ -173,11 +177,15 @@ class JobApplicationSerializer(serializers.ModelSerializer):
         return value.strip()
     
     def validate_email(self, value):
+        if self.partial and value is None:
+            return value
         if not value or not value.strip():
             raise serializers.ValidationError("Email cannot be empty")
         return value.lower().strip()
     
     def validate_resume(self, value):
+        if self.partial and value is None:
+            return value
         if not value:
             raise serializers.ValidationError("Resume file is required")
         
@@ -208,6 +216,8 @@ class ContactSubmissionSerializer(serializers.ModelSerializer):
         return f"{obj.first_name} {obj.last_name}".strip()
     
     def validate_first_name(self, value):
+        if self.partial and value is None:
+            return value
         if not value or not value.strip():
             raise serializers.ValidationError("First name cannot be empty")
         if len(value.strip()) < 2:
@@ -217,6 +227,8 @@ class ContactSubmissionSerializer(serializers.ModelSerializer):
         return value.strip()
     
     def validate_last_name(self, value):
+        if self.partial and value is None:
+            return value
         if not value or not value.strip():
             raise serializers.ValidationError("Last name cannot be empty")
         if len(value.strip()) < 2:
@@ -226,6 +238,8 @@ class ContactSubmissionSerializer(serializers.ModelSerializer):
         return value.strip()
     
     def validate_email(self, value):
+        if self.partial and value is None:
+            return value
         if not value or not value.strip():
             raise serializers.ValidationError("Email cannot be empty")
         return value.lower().strip()
@@ -236,6 +250,8 @@ class ContactSubmissionSerializer(serializers.ModelSerializer):
         return value.strip() if value else value
     
     def validate_subject(self, value):
+        if self.partial and value is None:
+            return value
         if not value or not value.strip():
             raise serializers.ValidationError("Subject cannot be empty")
         if len(value.strip()) < 3:
@@ -243,6 +259,8 @@ class ContactSubmissionSerializer(serializers.ModelSerializer):
         return value.strip()
     
     def validate_message(self, value):
+        if self.partial and value is None:
+            return value
         if not value or not value.strip():
             raise serializers.ValidationError("Message cannot be empty")
         if len(value.strip()) < 10:
@@ -270,3 +288,35 @@ class AdminLoginSerializer(serializers.Serializer):
             return attrs
         else:
             raise serializers.ValidationError('Must include email and password')
+
+class RefreshTokenSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+    
+    def validate_refresh(self, value):
+        try:
+            token = RefreshToken(value)
+            return value
+        except Exception:
+            raise serializers.ValidationError('Invalid refresh token')
+
+# Response Serializers for API documentation
+class LoginResponseSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+    user = UserSerializer()
+
+class TokenResponseSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+
+class LogoutResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+
+class SuccessResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    success = serializers.BooleanField()
+
+class CreatedResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    success = serializers.BooleanField()
+    id = serializers.IntegerField()
