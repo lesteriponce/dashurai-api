@@ -34,35 +34,30 @@ A Django REST API with Wagtail CMS integration for managing careers, contact for
 
 ### 1. Clone the Repository
 
-```bash
-git clone <repository-url>
+git clone https://github.com/lesteriponce/dashurai-api.git
 cd dashurai-api
-```
+
 
 ### 2. Create Virtual Environment
 
-```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+
 
 ### 3. Install Dependencies
 
-```bash
 pip install -r requirements.txt
-```
+
 
 ### 4. Environment Configuration
 
 Copy the example environment file and configure your settings:
 
-```bash
 cp .env.example .env
-```
 
 Edit `.env` with your configuration:
 
-```bash
+
 # Required
 SECRET_KEY=your-secret-key-here
 DEBUG=True
@@ -78,11 +73,10 @@ SECURE_SSL_REDIRECT=False
 SECURE_HSTS_SECONDS=0
 SESSION_COOKIE_SECURE=False
 CSRF_COOKIE_SECURE=False
-```
+
 
 ### 5. Database Setup
 
-```bash
 # Navigate to the Django project directory
 cd src/dashurai
 
@@ -95,13 +89,12 @@ python manage.py createsuperuser
 
 # Collect static files
 python manage.py collectstatic
-```
+
 
 ### 6. Start the Development Server
 
-```bash
 python manage.py runserver
-```
+
 
 The API will be available at `http://localhost:8000`
 
@@ -116,9 +109,9 @@ Once the server is running, you can access the API documentation:
 ## API Endpoints
 
 ### Base URL
-```
+
 http://localhost:8000/api/v1/
-```
+
 
 ### Authentication
 - `POST /auth/login/` - User login
@@ -162,9 +155,8 @@ http://localhost:8000/api/v1/
 
 The API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:
 
-```
 Authorization: Bearer <your-access-token>
-```
+
 
 ### Token Flow
 
@@ -188,36 +180,7 @@ Access the Wagtail CMS admin interface at:
 - **Admin**: http://localhost:8000/admin/
 - **CMS**: http://localhost:8000/cms/
 
-## Project Structure
-
-```
-dashurai-api/
-├── src/dashurai/          # Django project
-│   ├── dashurai/         # Project settings
-│   ├── api/              # API application
-│   │   ├── v1/          # API version 1
-│   │   ├── views.py     # API views
-│   │   ├── urls.py      # API URLs
-│   │   └── serializers.py
-│   ├── users/           # User management
-│   ├── careers/         # Job positions and applications
-│   ├── contact/         # Contact form
-│   ├── cms/             # Content management
-│   └── manage.py
-├── logs/                # Application logs
-├── media/               # User uploaded files
-├── staticfiles/         # Static files
-├── requirements.txt     # Python dependencies
-└── .env.example         # Environment variables template
-```
-
 ## Development
-
-### Running Tests
-
-```bash
-python manage.py test
-```
 
 ### Code Style
 
@@ -237,27 +200,25 @@ Logs are written to the `logs/` directory:
 
 For production, ensure these settings in `.env`:
 
-```bash
 DEBUG=False
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 SECURE_SSL_REDIRECT=True
 SECURE_HSTS_SECONDS=31536000
 SESSION_COOKIE_SECURE=True
 CSRF_COOKIE_SECURE=True
-```
+
 
 ### Environment Variables
 
 Required production variables:
 - `SECRET_KEY` - Generate a strong secret key
 - `DEBUG=False` - Disable debug mode
-- `ALLOWED_HOSTS` - Your domain names
+- `ALLOWED_HOSTS` - dashurai.com
 
 ### Database
 
 For production, consider using PostgreSQL instead of SQLite:
 
-```python
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -268,15 +229,14 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-```
+
 
 ### Static Files
 
 Configure static files serving for production:
 
-```bash
 python manage.py collectstatic --noinput
-```
+
 
 ## Contributing
 
@@ -293,10 +253,6 @@ This project is licensed under the MIT License.
 ## Support
 
 For support and questions, please contact the development team.
-
-## API Versioning
-
-The API uses URL versioning. Current version is `v1`. Future versions will be added as `/api/v2/`, etc.
 
 ## Changelog
 

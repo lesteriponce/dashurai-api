@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from drf_spectacular.utils import extend_schema
-from drf_spectacular.openapi import OpenApiResponse, OpenApiTypes
 from django.db import DatabaseError
 from .activity_service import get_recent_activities, activity_to_dict, create_activity
 from .activity_serializers import ActivitySerializer, ActivityListSerializer
@@ -24,9 +23,11 @@ class ActivityListView(APIView):
         tags=['Activities'],
         responses={
             200: ActivityListSerializer,
-            401: OpenApiResponse(description='Unauthorized'),
-            500: OpenApiResponse(description='Internal server error')
-        }
+            401: {'description': 'Unauthorized'},
+            500: {'description': 'Internal server error'}
+        },
+        summary='Get Activities',
+        description='Get paginated list of recent activities'
     )
     def get(self, request):
         try:
@@ -61,9 +62,11 @@ class ActivityStreamView(APIView):
         tags=['Activities'],
         responses={
             200: ActivityListSerializer,
-            401: OpenApiResponse(description='Unauthorized'),
-            500: OpenApiResponse(description='Internal server error')
-        }
+            401: {'description': 'Unauthorized'},
+            500: {'description': 'Internal server error'}
+        },
+        summary='Get Activity Stream',
+        description='Get stream of recent activities'
     )
     def get(self, request):
         try:
@@ -73,10 +76,10 @@ class ActivityStreamView(APIView):
             activities = get_recent_activities(limit=limit)
             activities_data = [activity_to_dict(activity) for activity in activities]
             
-            return Response({
+            return api_response(data={
                 'activities': activities_data,
                 'count': len(activities_data)
-            }, status=status.HTTP_200_OK)
+            })
             
         except (ValueError, TypeError) as e:
             return api_response(success=False, message='Invalid parameters', status_code=status.HTTP_400_BAD_REQUEST)
